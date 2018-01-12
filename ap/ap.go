@@ -4,9 +4,14 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"time"
 )
 
-func main() {
+func dtls_test() {
+
+}
+
+func tcp() {
 	conn, err := net.Dial("tcp", "localhost:5246")
 	if err != nil {
 		fmt.Println(err.Error())
@@ -19,4 +24,8 @@ func main() {
 		return
 	}
 	fmt.Printf("ap receive: %+v\n", status)
+}
+
+func main() {
+	dtls_test()
 }
