@@ -1,9 +1,25 @@
 package main
 
 import (
-	"fmt"
+	"io"
+	"log"
+	"net"
 )
 
 func main() {
-	fmt.Println("ac start")
+	l, err := net.Listen("tcp", ":5246")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer l.Close()
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			log.Fatal(err)
+		}
+		go func(c net.Conn) {
+			io.Copy(c, c)
+			c.Close()
+		}(conn)
+	}
 }
