@@ -1,25 +1,55 @@
 package main
 
 import (
-	"io"
+	"bufio"
+	"crypto/tls"
 	"log"
 	"net"
 )
 
-func main() {
-	l, err := net.Listen("tcp", ":5246")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer l.Close()
+func handleConnection(conn net.Conn) {
+	defer conn.Close()
+	r := bufio.NewReader(conn)
 	for {
-		conn, err := l.Accept()
+		msg, err := r.ReadString('\n')
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
+			return
 		}
-		go func(c net.Conn) {
-			io.Copy(c, c)
-			c.Close()
-		}(conn)
+
+		println(msg)
+
+		n, err := conn.Write([]byte("world\n"))
+		if err != nil {
+			log.Println(n, err)
+			return
+		}
+	}
+}
+
+func main() {
+	log.SetFlags(log.Lshortfile)
+
+	cer, err := tls.LoadX509KeyPair("/etc/cert/local/FortiCloud_Service.cer", "/etc/cert/local/FortiCloud_Service.key")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	config := &tls.Config{Certificates: []tls.Certificate{cer}}
+	ln, err := tls.Listen("tcp", ":541", config)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer ln.Close()
+
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		go handleConnection(conn)
 	}
 }
