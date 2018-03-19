@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"time"
+	"unsafe"
 )
 
 type EventLog struct {
@@ -18,13 +19,15 @@ type EventLog struct {
 	logtype   uint8
 	reserved1 [1]uint8
 	length    uint16
+	// reserved2 [4]uint8
 
-	reserved2 [5]uint8
-	reserved3 [3]uint8
+	reserved3 [5]uint8
+	reserved4 [3]uint8
 
 	timestamp int64
 	eventType [16]uint8
-	body      [48]uint8
+	subType   [32]uint8
+	ap        [16]uint8
 }
 
 type TrafficLog struct {
@@ -33,13 +36,23 @@ type TrafficLog struct {
 	logtype   uint8
 	reserved1 [1]uint8
 	length    uint16
+	// reserved2 [4]uint8
 
-	reserved2 [5]uint8
-	reserved3 [3]uint8
+	reserved3 [5]uint8
+	reserved4 [3]uint8
 
 	timestamp int64
 	win       int64
-	body      [56]uint8
+	ap        [16]uint8
+	ssid      [64]uint8
+	rId       uint16
+	wId       uint16
+	clientMac [6]uint8
+	user      [32]uint8
+	group     [32]uint8
+	auth      [32]uint8
+	sent      uint64
+	rcvd      uint64
 }
 
 func Ip2long(ipAddr string) (uint32, error) {
@@ -69,17 +82,33 @@ func sendLog(account uint64, logType uint8, ip string) {
 
 		timestamp: t,
 		eventType: [16]uint8{'a', 'p'},
+		subType:   [32]uint8{'a', 'p', '-', 's', 't', 'a', 't', 'u', 's'},
+		ap:        [16]uint8{'P', 'S', '3', '1', '1', 'C', '3', 'U', '1', '5', '0', '0', '0', '0', '0', '7'},
 	}
+
+	eLog.length = uint16(unsafe.Sizeof(eLog) - 24)
 
 	tLog := TrafficLog{
 		account:   account,
 		logDbHost: host,
 		logtype:   1,
-		length:    72,
+		length:    218,
 
 		timestamp: t,
 		win:       60,
+		ap:        [16]uint8{'f', 'a', 'k', 'e', '-', 'a', 'p'},
+		ssid:      [64]uint8{'f', 'a', 'k', 'e', '-', 's', 's', 'i', 'd'},
+		rId:       1,
+		wId:       1,
+		clientMac: [6]uint8{0xff, 0x11, 0x22, 0x33, 0x44, 0x55},
+		user:      [32]uint8{'f', 'a', 'k', 'e', '-', 'u', 's', 'e', 'r'},
+		group:     [32]uint8{'f', 'a', 'k', 'e', '-', 'g', 'r', 'o', 'u', 'p'},
+		auth:      [32]uint8{'f', 'a', 'k', 'e', '-', 'a', 'u', 't', 'h'},
+		sent:      0x0100000000000000,
+		rcvd:      0x0200000000000000,
 	}
+
+	// tLog.length = uint16(unsafe.Sizeof(tLog) - 24 - 8)
 
 	buf := &bytes.Buffer{}
 	if logType == 0 {
@@ -126,7 +155,7 @@ func main() {
 		}
 	}()
 
-	time.Sleep(2 * time.Hour)
+	time.Sleep(160 * time.Hour)
 	ticker.Stop()
 	fmt.Println("Sender stopped")
 }
