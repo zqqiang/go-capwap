@@ -2,13 +2,37 @@ package main
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"net"
-	"time"
 )
 
-func dtls_test() {
+type (
+	discoveryReq struct {
+		discoveryType uint8
+	}
+)
 
+const (
+	cwMsgElementDiscoveryTypeBroadcast  = 0
+	cwMsgElementDiscoveryTypeConfigured = 1
+)
+
+func cwWtpEnterDiscovery() {
+	r := discoveryReq{
+		discoveryType: cwMsgElementDiscoveryTypeConfigured,
+	}
+	buf := &bytes.Buffer{}
+	if err := binary.Write(buf, binary.LittleEndian, r); err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("% x\n", buf.Bytes())
+}
+
+func startWtp() {
+	cwWtpEnterDiscovery()
 }
 
 func tcp() {
@@ -27,5 +51,5 @@ func tcp() {
 }
 
 func main() {
-	dtls_test()
+	startWtp()
 }
