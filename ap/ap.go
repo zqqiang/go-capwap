@@ -10,9 +10,10 @@ import (
 
 func cwWtpEnterDiscovery() {
 	p := Preamble{}
-	p.SetVersion(Version)
+	p.setVersion(0)
+	p.setType(capwapHeader)
 
-	r := DiscoveryRequest{
+	r := discoveryRequest{
 		preamble:      p,
 		discoveryType: cwMsgElementDiscoveryTypeConfigured,
 	}
