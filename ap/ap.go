@@ -8,11 +8,26 @@ import (
 
 func cwWtpEnterDiscovery() {
 	p := Preamble{0, CapwapHeader}
-	b, err := p.Marshal()
+	pb, err := p.Marshal()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("%s raw[% x]\n", p.String(), b)
+	fmt.Printf("%s raw[% x]\n", p.String(), pb)
+
+	h := Header{
+		2,
+		1,
+		IEEE80211,
+		HeaderFlags{0, 0, 0, 0, 0, 0, 0},
+		0,
+		0,
+		0,
+	}
+	hb, err := h.Marshal()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%s raw[% x]\n", h.String(), hb)
 }
 
 func startWtp() {
