@@ -1,41 +1,52 @@
 package main
 
+import (
+	"fmt"
+	"syscall"
+)
+
+const (
+	CapwapHeader = 0
+)
+
 // Preamble Struct
 type Preamble struct {
-	preamble uint8
+	Version int
+	Type    int
 }
 
-func (p *Preamble) setVersion(version uint8) {
-	p.preamble |= version << 4
+func (p *Preamble) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ver=%d type=%d", p.Version, p.Type)
 }
 
-const (
-	capwapHeader = 0
-)
-
-func (p *Preamble) setType(preambleType uint8) {
-	p.preamble |= (preambleType & 0x0f)
+func (p *Preamble) Marshal() ([]byte, error) {
+	if p == nil {
+		return nil, syscall.EINVAL
+	}
+	b := make([]byte, 1)
+	b[0] = byte(p.Version<<4 | p.Type&0x0f)
+	return b, nil
 }
 
-// Header Struct
+type HeaderFlags struct {
+	PayloadType    int
+	Fragment       int
+	LastFragment   int
+	WirelessHeader int
+	RadioMacHeader int
+	KeepAlive      int
+	Reserved       int
+}
+
 type Header struct {
-	part1      [3]uint8
-	fragmentID uint16
-	part3      uint16
+	HeaderLength   int
+	RadioID        int
+	WirelessBindID int
+	Flags          HeaderFlags
+	FragmentID     int
+	FragmentOffset int
+	Reserved       int
 }
-
-func (h *Header) setHeaderLength(length uint8) {
-}
-
-func (h *Header) setRadioID(rid uint8) {
-}
-
-type discoveryRequest struct {
-	preamble      Preamble
-	discoveryType uint8
-}
-
-const (
-	cwMsgElementDiscoveryTypeBroadcast  = 0
-	cwMsgElementDiscoveryTypeConfigured = 1
-)

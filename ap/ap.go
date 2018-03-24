@@ -2,27 +2,17 @@ package main
 
 import (
 	"bufio"
-	"bytes"
-	"encoding/binary"
 	"fmt"
 	"net"
 )
 
 func cwWtpEnterDiscovery() {
-	p := Preamble{}
-	p.setVersion(0)
-	p.setType(capwapHeader)
-
-	r := discoveryRequest{
-		preamble:      p,
-		discoveryType: cwMsgElementDiscoveryTypeConfigured,
-	}
-	buf := &bytes.Buffer{}
-	if err := binary.Write(buf, binary.LittleEndian, r); err != nil {
+	p := Preamble{0, CapwapHeader}
+	b, err := p.Marshal()
+	if err != nil {
 		panic(err)
 	}
-
-	fmt.Printf("% x\n", buf.Bytes())
+	fmt.Printf("%s raw[% x]\n", p.String(), b)
 }
 
 func startWtp() {
