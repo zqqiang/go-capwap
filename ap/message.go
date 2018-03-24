@@ -25,7 +25,9 @@ type Header struct {
 }
 
 func (h *Header) setHeaderLength(length uint8) {
-	h.part1[0] |= length << 5
+}
+
+func (h *Header) setRadioID(rid uint8) {
 }
 
 type discoveryRequest struct {
