@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"net"
 )
@@ -28,25 +27,32 @@ func cwWtpEnterDiscovery() {
 		panic(err)
 	}
 	fmt.Printf("%s raw[% x]\n", h.String(), hb)
+
+	tcp(append(pb, hb...))
 }
 
 func startWtp() {
 	cwWtpEnterDiscovery()
 }
 
-func tcp() {
+func tcp(b []byte) {
 	conn, err := net.Dial("tcp", "localhost:5246")
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
-	fmt.Fprintf(conn, "GET / HTTP/1.0\r\n\r\n")
-	status, err := bufio.NewReader(conn).ReadString('\n')
+	n, err := conn.Write(b)
 	if err != nil {
-		fmt.Println(err.Error())
-		return
+		panic(err)
 	}
-	fmt.Printf("ap receive: %+v\n", status)
+	fmt.Printf("ap send: len %d raw[% x]\n", n, b)
+
+	var reply = make([]byte, 1024)
+	rn, err := conn.Read(reply)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("ap recv: len %d raw[% x]\n", rn, reply[:rn])
 }
 
 func main() {
