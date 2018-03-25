@@ -28,7 +28,22 @@ func cwWtpEnterDiscovery() {
 	}
 	fmt.Printf("%s raw[% x]\n", h.String(), hb)
 
-	tcp(append(pb, hb...))
+	c := ControlHeader{
+		MessageType{0, 1},
+		67,
+		351,
+		0,
+	}
+	cb, err := c.Marshal()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%s raw[% x]\n", c.String(), cb)
+
+	s := append(pb, hb...)
+	s = append(s, cb...)
+
+	tcp(s)
 }
 
 func startWtp() {

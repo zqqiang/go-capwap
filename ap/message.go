@@ -35,6 +35,10 @@ func (p *Preamble) Marshal() ([]byte, error) {
 	return b, nil
 }
 
+const (
+	ControlHeaderLength = 8
+)
+
 type HeaderFlags struct {
 	PayloadType    int
 	Fragment       int
@@ -79,5 +83,45 @@ func (h *Header) Marshal() ([]byte, error) {
 	binary.BigEndian.PutUint16(b[3:5], uint16(h.FragmentID))
 	binary.BigEndian.PutUint16(b[5:7], uint16(h.FragmentOffset<<3))
 	b[6] |= byte(h.Reserved & 0x07)
+	return b, nil
+}
+
+type MessageType struct {
+	EnterpriseNumber   int
+	EnterpriseSpecific int
+}
+
+func (m *MessageType) String() string {
+	if m == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("enterpriseNumber=%d enterpriseSpecific=%d",
+		m.EnterpriseNumber, m.EnterpriseSpecific)
+}
+
+type ControlHeader struct {
+	MessageType          MessageType
+	SequenceNumber       int
+	MessageElementLength int
+	Flags                int
+}
+
+func (c *ControlHeader) String() string {
+	if c == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("messageType=[%s] sequenceNumber=%d messageElementLegnth=%d flags=%#x",
+		c.MessageType.String(), c.SequenceNumber, c.MessageElementLength, c.Flags)
+}
+
+func (c *ControlHeader) Marshal() ([]byte, error) {
+	if c == nil {
+		return nil, syscall.EINVAL
+	}
+	b := make([]byte, ControlHeaderLength)
+	binary.BigEndian.PutUint32(b[0:4], uint32(c.MessageType.EnterpriseNumber<<8|c.MessageType.EnterpriseSpecific&0x000f))
+	b[4] = byte(c.SequenceNumber)
+	binary.BigEndian.PutUint16(b[5:7], uint16(c.MessageElementLength))
+	b[7] = byte(c.Flags)
 	return b, nil
 }
