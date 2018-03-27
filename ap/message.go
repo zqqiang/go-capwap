@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"syscall"
 )
@@ -36,6 +37,11 @@ func (p *Preamble) Marshal() ([]byte, error) {
 }
 
 func (p *Preamble) Parse(b []byte) error {
+	if p == nil || len(b) < PreambleLength {
+		return errors.New("preamble header too short")
+	}
+	p.Version = int(b[0] & 0xf0)
+	p.Type = int(b[0] & 0x0f)
 	return nil
 }
 
