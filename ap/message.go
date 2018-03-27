@@ -35,6 +35,10 @@ func (p *Preamble) Marshal() ([]byte, error) {
 	return b, nil
 }
 
+func (p *Preamble) Parse(b []byte) error {
+	return nil
+}
+
 const (
 	ControlHeaderLength = 8
 )
