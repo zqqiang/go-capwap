@@ -96,6 +96,14 @@ func (h *Header) Marshal() ([]byte, error) {
 	return b, nil
 }
 
+func (h *Header) Parse(b []byte) error {
+	if h == nil || len(b) < HeaderLength {
+		return errors.New("header too short")
+	}
+
+	return nil
+}
+
 type MessageType struct {
 	EnterpriseNumber   int
 	EnterpriseSpecific int
