@@ -100,7 +100,7 @@ func (h *Header) Parse(b []byte) error {
 	if h == nil || len(b) < HeaderLength {
 		return errors.New("header too short")
 	}
-
+	h.HeaderLength = int(binary.BigEndian.Uint16(b[0:2]) & 0xf800)
 	return nil
 }
 
