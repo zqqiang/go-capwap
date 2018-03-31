@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"reflect"
 	"testing"
 )
@@ -31,6 +32,18 @@ func TestParsePreamble(t *testing.T) {
 	}
 	if !reflect.DeepEqual(p, pp) {
 		t.Fatalf("got %#v; want %#v", p, pp)
+	}
+}
+
+func TestMashalPreamble(t *testing.T) {
+	p := preambleTests[0].Preamble
+	wp := preambleTests[0].wirePreamble
+	pb, err := p.Marshal()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(pb, wp) {
+		t.Fatalf("got %#v; want %#v", pb, wp)
 	}
 }
 
@@ -73,5 +86,17 @@ func TestParseHeader(t *testing.T) {
 	}
 	if !reflect.DeepEqual(h, hh) {
 		t.Fatalf("got %#v; want %#v", h, hh)
+	}
+}
+
+func TestMashalHeader(t *testing.T) {
+	h := headerTests[0].Header
+	wh := headerTests[0].wireHeader
+	hb, err := h.Marshal()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(hb, wh) {
+		t.Fatalf("got %#v; want %#v", hb, wh)
 	}
 }
