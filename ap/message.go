@@ -101,6 +101,18 @@ func (h *Header) Parse(b []byte) error {
 		return errors.New("header too short")
 	}
 	h.HeaderLength = int(binary.BigEndian.Uint16(b[0:2]) & 0xf800)
+	h.RadioID = int(binary.BigEndian.Uint16(b[0:2]) & 0x07c0)
+	h.WirelessBindID = int(binary.BigEndian.Uint16(b[0:2]) & 0x003e)
+	h.Flags.PayloadType = int(b[1] & 0x01)
+	h.Flags.Fragment = int(b[2] & 0x80)
+	h.Flags.LastFragment = int(b[2] & 0x40)
+	h.Flags.WirelessHeader = int(b[2] & 0x20)
+	h.Flags.RadioMacHeader = int(b[2] & 0x10)
+	h.Flags.KeepAlive = int(b[2] & 0x08)
+	h.Flags.Reserved = int(b[2] & 0x07)
+	h.FragmentID = int(binary.BigEndian.Uint16(b[3:5]))
+	h.FragmentOffset = int(binary.BigEndian.Uint16(b[5:7]) & 0xfff8)
+	h.Reserved = int(b[6] & 0x07)
 	return nil
 }
 

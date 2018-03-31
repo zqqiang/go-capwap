@@ -33,3 +33,8 @@ func TestParsePreamble(t *testing.T) {
 		t.Fatalf("got %#v; want %#v", p, pp)
 	}
 }
+
+func TestParseHeader(t *testing.T) {
+	h := new(Header)
+
+}
