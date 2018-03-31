@@ -40,7 +40,7 @@ func (p *Preamble) Parse(b []byte) error {
 	if p == nil || len(b) < PreambleLength {
 		return errors.New("preamble header too short")
 	}
-	p.Version = int(b[0] & 0xf0)
+	p.Version = int(b[0] >> 4)
 	p.Type = int(b[0] & 0x0f)
 	return nil
 }
@@ -84,11 +84,11 @@ func (h *Header) Marshal() ([]byte, error) {
 	b := make([]byte, HeaderLength)
 	binary.BigEndian.PutUint16(b[0:2], uint16(h.HeaderLength<<11|h.RadioID<<6|h.WirelessBindID<<1))
 	b[1] |= byte(h.Flags.PayloadType & 0x01)
-	b[2] |= byte(h.Flags.Fragment & 0x80)
-	b[2] |= byte(h.Flags.LastFragment & 0x40)
-	b[2] |= byte(h.Flags.WirelessHeader & 0x20)
-	b[2] |= byte(h.Flags.RadioMacHeader & 0x10)
-	b[2] |= byte(h.Flags.KeepAlive & 0x08)
+	b[2] |= byte((h.Flags.Fragment & 0x80) >> 7)
+	b[2] |= byte((h.Flags.LastFragment & 0x40) >> 6)
+	b[2] |= byte((h.Flags.WirelessHeader & 0x20) >> 5)
+	b[2] |= byte((h.Flags.RadioMacHeader & 0x10) >> 4)
+	b[2] |= byte((h.Flags.KeepAlive & 0x08) >> 3)
 	b[2] |= byte(h.Flags.Reserved & 0x07)
 	binary.BigEndian.PutUint16(b[3:5], uint16(h.FragmentID))
 	binary.BigEndian.PutUint16(b[5:7], uint16(h.FragmentOffset<<3))
@@ -100,9 +100,9 @@ func (h *Header) Parse(b []byte) error {
 	if h == nil || len(b) < HeaderLength {
 		return errors.New("header too short")
 	}
-	h.HeaderLength = int(binary.BigEndian.Uint16(b[0:2]) & 0xf800)
-	h.RadioID = int(binary.BigEndian.Uint16(b[0:2]) & 0x07c0)
-	h.WirelessBindID = int(binary.BigEndian.Uint16(b[0:2]) & 0x003e)
+	h.HeaderLength = int(binary.BigEndian.Uint16(b[0:2]) & 0xf800 >> 11)
+	h.RadioID = int((binary.BigEndian.Uint16(b[0:2]) & 0x07c0) >> 6)
+	h.WirelessBindID = int((binary.BigEndian.Uint16(b[0:2]) & 0x003e) >> 1)
 	h.Flags.PayloadType = int(b[1] & 0x01)
 	h.Flags.Fragment = int(b[2] & 0x80)
 	h.Flags.LastFragment = int(b[2] & 0x40)

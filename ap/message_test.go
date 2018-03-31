@@ -5,12 +5,12 @@ import (
 	"testing"
 )
 
-type headerTest struct {
+type preambleTest struct {
 	wirePreamble []byte
 	*Preamble
 }
 
-var headerTests = []headerTest{
+var preambleTests = []preambleTest{
 	{
 		wirePreamble: []byte{
 			0x00,
@@ -24,8 +24,8 @@ var headerTests = []headerTest{
 
 func TestParsePreamble(t *testing.T) {
 	p := new(Preamble)
-	pp := headerTests[0].Preamble
-	wp := headerTests[0].wirePreamble
+	pp := preambleTests[0].Preamble
+	wp := preambleTests[0].wirePreamble
 	if err := p.Parse(wp); err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +34,44 @@ func TestParsePreamble(t *testing.T) {
 	}
 }
 
+type headerTest struct {
+	wireHeader []byte
+	*Header
+}
+
+var headerTests = []headerTest{
+	{
+		wireHeader: []byte{
+			0x10, 0x42, 0x00, 0x00, 0x00, 0x00, 0x00,
+		},
+		Header: &Header{
+			HeaderLength:   2,
+			RadioID:        1,
+			WirelessBindID: 1,
+			Flags: HeaderFlags{
+				PayloadType:    0,
+				Fragment:       0,
+				LastFragment:   0,
+				WirelessHeader: 0,
+				RadioMacHeader: 0,
+				KeepAlive:      0,
+				Reserved:       0,
+			},
+			FragmentID:     0,
+			FragmentOffset: 0,
+			Reserved:       0,
+		},
+	},
+}
+
 func TestParseHeader(t *testing.T) {
 	h := new(Header)
-
+	hh := headerTests[0].Header
+	wh := headerTests[0].wireHeader
+	if err := h.Parse(wh); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(h, hh) {
+		t.Fatalf("got %#v; want %#v", h, hh)
+	}
 }
