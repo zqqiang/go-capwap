@@ -5,7 +5,7 @@ import (
 	"net"
 )
 
-func cwWtpEnterDiscovery() {
+func CWWtpEnterDiscovery() State {
 	p := Preamble{0, CapwapHeader}
 	pb, err := p.Marshal()
 	if err != nil {
@@ -44,10 +44,8 @@ func cwWtpEnterDiscovery() {
 	s = append(s, cb...)
 
 	tcp(s)
-}
 
-func startWtp() {
-	cwWtpEnterDiscovery()
+	return CWQuit
 }
 
 func tcp(b []byte) {
@@ -70,6 +68,23 @@ func tcp(b []byte) {
 	fmt.Printf("ap recv: len %d raw[% x]\n", rn, reply[:rn])
 }
 
+type State int
+
+const (
+	CWEnterDiscovery State = iota + 1
+	CWEnterSulking
+	CWQuit
+)
+
 func main() {
-	startWtp()
+	var nextState = CWEnterDiscovery
+
+	for {
+		switch nextState {
+		case CWEnterDiscovery:
+			nextState = CWWtpEnterDiscovery()
+		case CWQuit:
+			return
+		}
+	}
 }
