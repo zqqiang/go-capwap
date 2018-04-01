@@ -5,45 +5,81 @@ import (
 	"net"
 )
 
-func CWWtpEnterDiscovery() State {
-	p := Preamble{0, CapwapHeader}
-	pb, err := p.Marshal()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("%s raw[% x]\n", p.String(), pb)
+type State int
 
-	h := Header{
-		2,
-		1,
-		IEEE80211,
-		HeaderFlags{0, 0, 0, 0, 0, 0, 0},
-		0,
-		0,
-		0,
-	}
-	hb, err := h.Marshal()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("%s raw[% x]\n", h.String(), hb)
+const (
+	CWEnterDiscovery State = iota + 1
+	CWEnterSulking
+	CWEnterJoin
+	CWEnterConfigure
+	CWEnterDataCheck
+	CWEnterRun
+	CWEnterReset
+	CWQuit
+)
 
-	c := ControlHeader{
-		MessageType{0, 1},
-		67,
-		351,
-		0,
-	}
-	cb, err := c.Marshal()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("%s raw[% x]\n", c.String(), cb)
+const (
+	CWMaxDiscoveries = 10
+)
 
-	s := append(pb, hb...)
-	s = append(s, cb...)
+type CWACDescriptor struct {
+}
 
-	tcp(s)
+var CWACList []CWACDescriptor
+
+func CWWTPEnterDiscovery() State {
+	fmt.Println("######### Discovery State #########")
+
+	CWDiscoveryCount := 0
+
+	for {
+		if CWDiscoveryCount == CWMaxDiscoveries {
+			return CWEnterSulking
+		}
+		for i := 0; i < len(CWACList); i++ {
+
+			p := Preamble{0, CapwapHeader}
+			pb, err := p.Marshal()
+			if err != nil {
+				panic(err)
+			}
+			fmt.Printf("%s raw[% x]\n", p.String(), pb)
+
+			h := Header{
+				2,
+				1,
+				IEEE80211,
+				HeaderFlags{0, 0, 0, 0, 0, 0, 0},
+				0,
+				0,
+				0,
+			}
+			hb, err := h.Marshal()
+			if err != nil {
+				panic(err)
+			}
+			fmt.Printf("%s raw[% x]\n", h.String(), hb)
+
+			c := ControlHeader{
+				MessageType{0, 1},
+				67,
+				351,
+				0,
+			}
+			cb, err := c.Marshal()
+			if err != nil {
+				panic(err)
+			}
+			fmt.Printf("%s raw[% x]\n", c.String(), cb)
+
+			s := append(pb, hb...)
+			s = append(s, cb...)
+
+			tcp(s)
+
+		}
+		break
+	}
 
 	return CWQuit
 }
@@ -68,21 +104,25 @@ func tcp(b []byte) {
 	fmt.Printf("ap recv: len %d raw[% x]\n", rn, reply[:rn])
 }
 
-type State int
+func CWWTPEnterSulking() State {
+	return CWQuit
+}
 
-const (
-	CWEnterDiscovery State = iota + 1
-	CWEnterSulking
-	CWQuit
-)
+func CWWTPLoadConfiguration() {
+	CWACList = make([]CWACDescriptor, 1)
+}
 
 func main() {
+	CWWTPLoadConfiguration()
+
 	var nextState = CWEnterDiscovery
 
 	for {
 		switch nextState {
 		case CWEnterDiscovery:
-			nextState = CWWtpEnterDiscovery()
+			nextState = CWWTPEnterDiscovery()
+		case CWEnterSulking:
+			nextState = CWWTPEnterSulking()
 		case CWQuit:
 			return
 		}
