@@ -110,12 +110,21 @@ func CWNetworkSendUnsafeUnconnected(addr string, b []byte) error {
 	return nil
 }
 
+func CWWTPFoundAnAC() bool {
+	return true
+}
+
+func CWReadResponses() bool {
+	return true
+}
+
 func CWWTPEnterDiscovery() State {
 	fmt.Println("######### Discovery State #########")
 
 	CWDiscoveryCount := 0
 
 	for {
+		sentSomething := false
 		if CWDiscoveryCount == CWMaxDiscoveries {
 			return CWEnterSulking
 		}
@@ -129,14 +138,21 @@ func CWWTPEnterDiscovery() State {
 				if err := CWNetworkSendUnsafeUnconnected(CWACList[0].address, s); err != nil {
 					panic(err)
 				}
+				sentSomething = true
 			}
+		}
+
+		if sentSomething == false && CWWTPFoundAnAC() {
+			break
 		}
 
 		CWDiscoveryCount++
 
-		fmt.Printf("WTP Discovery-To-Discovery (%d)", CWDiscoveryCount)
+		if CWReadResponses() && CWWTPFoundAnAC() {
+			break
+		}
 
-		break
+		fmt.Printf("WTP Discovery-To-Discovery (%d)", CWDiscoveryCount)
 	}
 
 	return CWQuit
