@@ -2,6 +2,10 @@ package guard
 
 import "testing"
 
-func TestPoll(t *testing.T) {
-	poll()
+func TestHttpPoll(t *testing.T) {
+	httpPoll()
+}
+
+func TestSelPoll(t *testing.T) {
+	selPollRequest()
 }
