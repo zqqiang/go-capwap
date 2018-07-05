@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"runtime"
+	"strings"
 )
 
 const (
@@ -37,20 +38,22 @@ func handleConnection(conn net.Conn) {
 		msg, err := r.ReadString('\n')
 		if err != nil {
 			log.Println(err)
+			return
+		}
 
-			// if count != 0 {
-			// 	n, err := conn.Write([]byte("received get ip\n"))
-			// 	if err != nil {
-			// 		log.Println(n, err)
-			// 		return
-			// 	}
-			// }
+		if strings.Compare(msg, "\r\n") == 0 {
+			fmt.Printf("sent response\n")
 
+			n, err := conn.Write([]byte("received get ip\n"))
+			if err != nil {
+				log.Println(n, err)
+				return
+			}
 			return
 		}
 
 		count++
-		fmt.Printf("%d. %x\n", count, []byte(msg))
+		fmt.Printf("%d. %s\n", count, msg)
 	}
 }
 
