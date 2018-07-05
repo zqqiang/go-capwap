@@ -49,11 +49,11 @@ func handleMessageLine(req *request, line string) error {
 		req.attrs[key] = val
 	} else {
 		args := strings.Split(strings.TrimRight(line, "\r\n"), " ")
-		if strings.Compare(args[0], "get") == 0 {
+		if strings.Contains(args[0], "get") {
 			req.method = "get"
 			req.args = args[1:]
 		} else {
-			return fmt.Errorf("unknow method %s", line)
+			return fmt.Errorf("unknow method %s", args[0])
 		}
 	}
 	return nil
