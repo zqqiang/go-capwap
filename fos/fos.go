@@ -1,76 +1,40 @@
 package main
 
 import (
-	"bufio"
 	"crypto/tls"
-	"fmt"
 	"log"
-	"net"
-	"runtime"
 )
 
 const (
-	winCert   = "D:\\cert\\local\\FortiCloud_Service.cer"
-	winKey    = "D:\\cert\\local\\FortiCloud_Service.key"
-	linuxCert = "/etc/cert/local/FortiCloud_Service.cer"
-	linuxKey  = "/etc/cert/local/FortiCloud_Service.key"
+	getIP = "get ip\r\nserialno=FGT30E3U17023830\r\nmgmtid=40283279\r\nplatform=FortiGate-30E\r\nfos_ver=500\r\nbuild=1547\r\nbranch=1547\r\nmaxvdom=5\r\nfg_ip=172.16.95.47\r\nhostname=FGT30E3U17023830\r\nharddisk=no\r\nbiover=05000016\r\nmgmt_mode=normal\r\nenc_flags=0\r\nfirst_fmgid=\r\nprobe_mode=yes\r\nvdom=root\r\nintf=wan\n"
 )
-
-func getCertKey() (string, string) {
-	switch os := runtime.GOOS; os {
-	case "windows":
-		return winCert, winKey
-	case "linux":
-		return linuxCert, linuxKey
-	default:
-		fmt.Printf("unsupport os: %s\n", os)
-		return "", ""
-	}
-}
-
-func handleConnection(conn net.Conn) {
-	defer conn.Close()
-	r := bufio.NewReader(conn)
-	for {
-		msg, err := r.ReadString('\n')
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		println(msg)
-
-		n, err := conn.Write([]byte("world\n"))
-		if err != nil {
-			log.Println(n, err)
-			return
-		}
-	}
-}
 
 func main() {
 	log.SetFlags(log.Lshortfile)
 
-	cer, err := tls.LoadX509KeyPair(getCertKey())
+	conf := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+
+	conn, err := tls.Dial("tcp", "127.0.0.1:541", conf)
 	if err != nil {
 		log.Println(err)
 		return
 	}
+	defer conn.Close()
 
-	config := &tls.Config{Certificates: []tls.Certificate{cer}}
-	ln, err := tls.Listen("tcp", ":541", config)
+	n, err := conn.Write([]byte(getIP))
 	if err != nil {
-		log.Println(err)
+		log.Println(n, err)
 		return
 	}
-	defer ln.Close()
 
-	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		go handleConnection(conn)
+	buf := make([]byte, 100)
+	n, err = conn.Read(buf)
+	if err != nil {
+		log.Println(n, err)
+		return
 	}
+
+	println(string(buf[:n]))
 }

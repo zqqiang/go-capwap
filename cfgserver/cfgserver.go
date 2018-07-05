@@ -40,7 +40,7 @@ func handleConnection(conn net.Conn) {
 
 		println(msg)
 
-		n, err := conn.Write([]byte("world\n"))
+		n, err := conn.Write([]byte("received get ip\n"))
 		if err != nil {
 			log.Println(n, err)
 			return
