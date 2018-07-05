@@ -10,6 +10,14 @@ import (
 	"strings"
 )
 
+type (
+	request struct {
+		method string
+		args   []string
+		attrs  map[string]string
+	}
+)
+
 const (
 	winCert   = "D:\\cert\\local\\FortiCloud_Service.cer"
 	winKey    = "D:\\cert\\local\\FortiCloud_Service.key"
@@ -29,19 +37,45 @@ func getCertKey() (string, string) {
 	}
 }
 
+func isMessageEnd(msg string) bool {
+	return (strings.Compare(msg, "\r\n") == 0)
+}
+
+func handleMessageLine(req *request, line string) error {
+	if strings.Contains(line, "=") {
+		arr := strings.Split(line, "=")
+		key := arr[0]
+		val := arr[1]
+		req.attrs[key] = val
+	} else {
+		args := strings.Split(strings.TrimRight(line, "\r\n"), " ")
+		if strings.Compare(args[0], "get") == 0 {
+			req.method = "get"
+			req.args = args[1:]
+		} else {
+			return fmt.Errorf("unknow method %s", line)
+		}
+	}
+	return nil
+}
+
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 	r := bufio.NewReader(conn)
 
+	req := &request{}
+	req.attrs = make(map[string]string)
+
 	count := 0
 	for {
-		msg, err := r.ReadString('\n')
+		line, err := r.ReadString('\n')
 		if err != nil {
 			log.Println(err)
 			return
 		}
 
-		if strings.Compare(msg, "\r\n") == 0 {
+		if isMessageEnd(line) {
+			fmt.Printf("received %+v\n", req)
 			fmt.Printf("sent response\n")
 
 			n, err := conn.Write([]byte("received get ip\n"))
@@ -53,7 +87,12 @@ func handleConnection(conn net.Conn) {
 		}
 
 		count++
-		fmt.Printf("%d. %s\n", count, msg)
+
+		err = handleMessageLine(req, line)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 	}
 }
 
