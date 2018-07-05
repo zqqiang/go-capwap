@@ -31,20 +31,26 @@ func getCertKey() (string, string) {
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 	r := bufio.NewReader(conn)
+
+	count := 0
 	for {
 		msg, err := r.ReadString('\n')
 		if err != nil {
 			log.Println(err)
+
+			// if count != 0 {
+			// 	n, err := conn.Write([]byte("received get ip\n"))
+			// 	if err != nil {
+			// 		log.Println(n, err)
+			// 		return
+			// 	}
+			// }
+
 			return
 		}
 
-		println(msg)
-
-		n, err := conn.Write([]byte("received get ip\n"))
-		if err != nil {
-			log.Println(n, err)
-			return
-		}
+		count++
+		fmt.Printf("%d. %x\n", count, []byte(msg))
 	}
 }
 
