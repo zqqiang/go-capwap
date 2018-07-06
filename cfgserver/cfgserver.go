@@ -29,11 +29,11 @@ func getCertKey() (string, string) {
 	}
 }
 
-func isMessageEnd(msg string) bool {
+func receiveDone(msg string) bool {
 	return (strings.Compare(msg, "\r\n") == 0)
 }
 
-func handleMessageLine(req *Request, line string) error {
+func handleMessageLine(req *Message, line string) error {
 	if strings.Contains(line, "=") {
 		arr := strings.Split(line, "=")
 		key := arr[0]
@@ -55,7 +55,7 @@ func handleConnection(conn net.Conn) {
 	defer conn.Close()
 	r := bufio.NewReader(conn)
 
-	req := &Request{}
+	req := &Message{}
 	req.attrs = make(map[string]string)
 
 	count := 0
@@ -66,9 +66,10 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 
-		if isMessageEnd(line) {
+		if receiveDone(line) {
 			fmt.Printf("received %+v\n", req)
-			fmt.Printf("sent response\n")
+
+			req.handler()
 
 			n, err := conn.Write([]byte("received get ip\n"))
 			if err != nil {
