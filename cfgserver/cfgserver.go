@@ -10,14 +10,6 @@ import (
 	"strings"
 )
 
-type (
-	request struct {
-		method string
-		args   []string
-		attrs  map[string]string
-	}
-)
-
 const (
 	winCert   = "D:\\cert\\local\\FortiCloud_Service.cer"
 	winKey    = "D:\\cert\\local\\FortiCloud_Service.key"
@@ -41,7 +33,7 @@ func isMessageEnd(msg string) bool {
 	return (strings.Compare(msg, "\r\n") == 0)
 }
 
-func handleMessageLine(req *request, line string) error {
+func handleMessageLine(req *Request, line string) error {
 	if strings.Contains(line, "=") {
 		arr := strings.Split(line, "=")
 		key := arr[0]
@@ -49,8 +41,8 @@ func handleMessageLine(req *request, line string) error {
 		req.attrs[key] = val
 	} else {
 		args := strings.Split(strings.TrimRight(line, "\r\n"), " ")
-		if strings.Contains(args[0], "get") {
-			req.method = "get"
+		if strings.Contains(args[0], GET.String()) {
+			req.method = GET
 			req.args = args[1:]
 		} else {
 			return fmt.Errorf("unknow method %s", args[0])
@@ -63,7 +55,7 @@ func handleConnection(conn net.Conn) {
 	defer conn.Close()
 	r := bufio.NewReader(conn)
 
-	req := &request{}
+	req := &Request{}
 	req.attrs = make(map[string]string)
 
 	count := 0
