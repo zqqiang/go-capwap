@@ -55,6 +55,7 @@ func handleConnection(conn net.Conn) {
 	defer conn.Close()
 	r := bufio.NewReader(conn)
 
+	session := &Session{conn: conn}
 	req := &Message{}
 	req.attrs = make(map[string]string)
 
@@ -68,14 +69,7 @@ func handleConnection(conn net.Conn) {
 
 		if receiveDone(line) {
 			fmt.Printf("received %+v\n", req)
-
-			req.handler()
-
-			n, err := conn.Write([]byte("received get ip\n"))
-			if err != nil {
-				log.Println(n, err)
-				return
-			}
+			req.handler(session)
 			return
 		}
 
