@@ -34,13 +34,13 @@ async function run() {
 
   await connection.exec("end");
 
-  await getChannels(res)
+  await getChannels(res);
 
   await connection.exec("config radio-2");
 
   res = await connection.exec("set channel ?");
 
-  await getChannels(res)
+  await getChannels(res);
 
   await connection.exec("end");
 
