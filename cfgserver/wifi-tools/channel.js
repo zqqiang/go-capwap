@@ -6,13 +6,13 @@ const _ = require("lodash");
 const params = {
   host: "172.16.95.49",
   port: 23,
-  timeout: 5000,
-  execTimeout: 5000,
+  timeout: 15000,
+  execTimeout: 15000,
   username: "admin",
   password: "admin",
   pageSeparator: "--More--",
-  // debug: true
-  debug: false
+  debug: true
+  // debug: false
 };
 
 async function getChannels(out) {
@@ -22,15 +22,17 @@ async function getChannels(out) {
   return channels;
 }
 
+let count = 0;
+
 async function telnet(conn, cmd) {
   let res = await conn.exec(cmd);
   if (params.debug) {
     let lines = _.split(res, "\n");
-    lines = _.remove(lines, function(line) {
-      return line.length !== 0;
-    });
+    // lines = _.remove(lines, function(line) {
+    //   return line.length !== 0;
+    // });
     if (lines.length) {
-      console.log(cmd, lines);
+      console.log(count++, cmd, lines);
     }
   }
   return res;
@@ -225,16 +227,8 @@ function getDarrps() {
   return ["enable", "disable"];
 }
 
-async function getBands(conn, platform, radio) {
-  await telnet(conn, "config wireless-controller wtp-profile");
-  await telnet(conn, `edit TempProfile`);
-  await telnet(conn, `config platform`);
-  await telnet(conn, `set type ${platform}`);
-  await telnet(conn, `end`);
-  await telnet(conn, `config ${radio}`);
+async function getBands(conn) {
   let res = await telnet(conn, `set band ?`);
-  await telnet(conn, "end");
-  await telnet(conn, "abort");
 
   let lines = _.split(res, "\n");
   let bands = _.remove(lines, function(line) {
@@ -248,14 +242,8 @@ async function getBands(conn, platform, radio) {
   return bands;
 }
 
-async function getRadios(conn, platform) {
-  await telnet(conn, "config wireless-controller wtp-profile");
-  await telnet(conn, `edit TempProfile`);
-  await telnet(conn, `config platform`);
-  await telnet(conn, `set type ${platform}`);
-  await telnet(conn, `end`);
+async function getRadios(conn) {
   let res = await telnet(conn, `config ?`);
-  await telnet(conn, "end");
 
   let lines = _.split(res, "\n");
   let radios = _.remove(lines, function(line) {
@@ -269,17 +257,8 @@ async function getRadios(conn, platform) {
   return radios;
 }
 
-async function getBondings(conn, platform, radio, band) {
-  await telnet(conn, "config wireless-controller wtp-profile");
-  await telnet(conn, `edit TempProfile`);
-  await telnet(conn, `config platform`);
-  await telnet(conn, `set type ${platform}`);
-  await telnet(conn, `end`);
-  await telnet(conn, `config ${radio}`);
-  await telnet(conn, `set band ${band}`);
+async function getBondings(conn) {
   let res = await telnet(conn, `set channel-bonding ?`);
-  await telnet(conn, "end");
-  await telnet(conn, "abort");
 
   let lines = _.split(res, "\n");
   if (lines[0].includes(`command parse error`)) {
@@ -297,35 +276,10 @@ async function getBondings(conn, platform, radio, band) {
   }
 }
 
-async function queryChannels(
-  conn,
-  platform,
-  country,
-  radio,
-  band,
-  bonding,
-  darrp
-) {
-  await telnet(conn, "config wireless-controller wtp-profile");
-  await telnet(conn, `edit TempProfile`);
-  await telnet(conn, `config platform`);
-  await telnet(conn, `set type ${platform}`);
-  await telnet(conn, `end`);
-  await telnet(conn, `set ap-country ${country}\r\ny`);
-  await telnet(conn, `config ${radio}`);
-  await telnet(conn, `set band ${band}`);
-  await telnet(conn, `set channel-bonding ${bonding}`);
-  await telnet(conn, `set darrp ${darrp}`);
-
+async function queryChannels(conn) {
   let res = await telnet(conn, "set channel ?");
   let channels = await getChannels(res);
-  await telnet(conn, "\n");
-  await telnet(conn, "end");
-  await telnet(conn, "abort");
-
-  console.log(
-    `'${platform}', '${country}', '${radio}', '${band}', '${bonding}', '${darrp}', ${channels}`
-  );
+  console.log(`${channels}`);
 }
 
 function telnetFactory(start) {
@@ -365,36 +319,56 @@ async function main() {
   let conn = telnetFactory(start);
   await conn.connect(params);
 
-  for (let p = 0; p < platforms.length; ++p) {
-    let platform = platforms[p];
-    let radios = await getRadios(conn, platform);
-    for (let r = 0; r < radios.length; ++r) {
-      let radio = radios[r];
-      let bands = await getBands(conn, platform, radio);
-      for (let b = 0; b < bands.length; ++b) {
-        let band = bands[b];
-        let bondings = await getBondings(conn, platform, radio, band);
-        for (let bo = 0; bo < bondings.length; ++bo) {
-          let bonding = bondings[bo];
-          for (let d = 0; d < darrps.length; ++d) {
-            let darrp = darrps[d];
-            for (let c = 0; c < countries.length; ++c) {
-              let country = countries[c];
-              await queryChannels(
-                conn,
-                platform,
-                country,
-                radio,
-                band,
-                bonding,
-                darrp
-              );
+  await telnet(
+    conn,
+    "config wireless-controller wtp-profile\r\nedit temp-profile"
+  );
+
+  for (let c = 0; c < countries.length; ++c) {
+    let country = countries[c];
+    await telnet(conn, `set ap-country ${country}\r\ny`);
+
+    for (let p = 0; p < platforms.length; ++p) {
+      let platform = platforms[p];
+
+      await telnet(conn, `config platform`);
+      await telnet(conn, `set type ${platform}`);
+      await telnet(conn, `end`);
+      let radios = await getRadios(conn);
+
+      for (let r = 0; r < radios.length; ++r) {
+        let radio = radios[r];
+
+        await telnet(conn, `config ${radio}`);
+
+        let bands = await getBands(conn);
+        for (let b = 0; b < bands.length; ++b) {
+          let band = bands[b];
+
+          await telnet(conn, `set band ${band}`);
+
+          let bondings = await getBondings(conn);
+          for (let bo = 0; bo < bondings.length; ++bo) {
+            let bonding = bondings[bo];
+
+            await telnet(conn, `set channel-bonding ${bonding}`);
+
+            for (let d = 0; d < darrps.length; ++d) {
+              let darrp = darrps[d];
+
+              await telnet(conn, `set darrp ${darrp}`);
+
+              await queryChannels(conn);
             }
           }
         }
+
+        await telnet(conn, `abort`);
       }
     }
   }
+
+  await telnet(conn, `abort`);
 
   await conn.destroy();
 
@@ -408,19 +382,7 @@ async function debug() {
   let conn = telnetFactory();
   await conn.connect(params);
 
-  await queryChannels(
-    conn,
-    "AP-11N",
-    "GE",
-    "radio-1",
-    "802.11n",
-    "40MHz",
-    "enable"
-  );
-
   await conn.destroy();
 }
 
 // debug();
-
-// 'AP-11N', 'GL', 'radio-1', '802.11n', '40MHz', 'enable', t channel
