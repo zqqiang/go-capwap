@@ -112,18 +112,26 @@ INSERT INTO 'wifi_platforms' VALUES `;
     console.log(err);
   }
   let platforms = getPlatforms();
-  for(let p = 0; p < platforms.length; ++p){
+  for (let p = 0; p < platforms.length; ++p) {
     try {
-      let sep = p !== platforms.length - 1 ? ',': ';';
+      let sep = p !== platforms.length - 1 ? "," : ";";
       let platform = platforms[p];
-      await fs.appendFileSync("wifi_platforms.sql", `\r\n    (${p}, '${platform.key}', '${platform.name}')${sep}`, "utf8");
+      await fs.appendFileSync(
+        "wifi_platforms.sql",
+        `\r\n    (${p}, '${platform.key}', '${platform.name}')${sep}`,
+        "utf8"
+      );
     } catch (err) {
       console.log(err);
     }
   }
 
   try {
-    await fs.appendFileSync("wifi_platforms.sql", `\r\n\r\nUNLOCK TABLES;`, "utf8");
+    await fs.appendFileSync(
+      "wifi_platforms.sql",
+      `\r\n\r\nUNLOCK TABLES;`,
+      "utf8"
+    );
   } catch (err) {
     console.log(err);
   }
@@ -560,6 +568,8 @@ async function main() {
   const countries = getCountries();
   const darrps = getDarrps();
 
+  await buildWifiPlatformsSql();
+
   await buildWifiChannelsSql();
 
   let conn = telnetFactory(start);
@@ -635,10 +645,9 @@ async function main() {
   await conn.destroy();
 
   buildWifiChannelsSqlEnd();
+
   let end = new Date() - start;
   console.log("Execution time: %dms", end);
 }
 
-// main();
-
-buildWifiPlatformsSql();
+main();
