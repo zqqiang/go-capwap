@@ -478,6 +478,19 @@ INSERT INTO 'wifi_channels' VALUES `;
   }
 }
 
+async function sqlEnd() {
+  const end = `
+(0, 0, 0, 0, 0, 0, '');
+
+UNLOCK TABLES;`;
+
+  try {
+    fs.appendFileSync("wifi_channels.sql", end, "utf8");
+  } catch (err) {
+    console.log(err);
+  }
+}
+
 async function sqlAppend(
   country,
   platform,
@@ -500,6 +513,7 @@ async function main() {
   let start = new Date();
 
   process.on("SIGINT", code => {
+    sqlEnd();
     let end = new Date() - start;
     console.log("Execution time: %dms", end);
     process.exit(0);
@@ -583,6 +597,7 @@ async function main() {
 
   await conn.destroy();
 
+  sqlEnd();
   let end = new Date() - start;
   console.log("Execution time: %dms", end);
 }
