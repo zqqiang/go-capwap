@@ -404,23 +404,69 @@ async function getBands(conn) {
   return bands;
 }
 
-function getBandCode(band) {
-  const bandMap = [
-    "802.11a",
-    "802.11b",
-    "802.11g",
-    "802.11n",
-    "802.11n-5G",
-    "802.11n,g-only",
-    "802.11g-only",
-    "802.11n-only",
-    "802.11n-5G-only",
-    "802.11ac",
-    "802.11ac,n-only",
-    "802.11ac-only"
-  ];
+const bandsMap = [
+  { key: "802.11a", name: "802.11a" },
+  { key: "802.11b", name: "802.11b" },
+  { key: "802.11g", name: "802.11g/b" },
+  { key: "802.11n", name: "802.11n/g/b at 2.4GHz" },
+  { key: "802.11n-5G", name: "802.11n/a at 5GHz" },
+  { key: "802.11n,g-only", name: "802.11n/g at 2.4GHz" },
+  { key: "802.11g-only", name: "802.11g" },
+  { key: "802.11n-only", name: "802.11n at 2.4GHz" },
+  { key: "802.11n-5G-only", name: "802.11n at 5GHz" },
+  { key: "802.11ac", name: "802.11ac/n/a" },
+  { key: "802.11ac,n-only", name: "802.11ac/n" },
+  { key: "802.11ac-only", name: "802.11ac" }
+];
 
-  return _.indexOf(bandMap, band);
+function getBandCode(band) {
+  return _.indexOf(
+    _.map(bandsMap, band => {
+      return band.key;
+    }),
+    band
+  );
+}
+
+async function buildWifiBandsSql() {
+  const sql = `
+DROP TABLE IF EXISTS 'wifi_bands';
+
+CREATE TABLE 'wifi_bands' (
+  'oid' int(11) NOT NULL COMMENT 'band oid',
+  'name' char(6) DEFAULT NULL COMMENT 'band name',
+  'display' char(16) DEFAULT NULL COMMENT 'band gui display',
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+LOCK TABLES 'wifi_bands' WRITE;
+
+INSERT INTO 'wifi_bands' VALUES `;
+
+  try {
+    await fs.writeFileSync("wifi_bands.sql", sql, "utf8");
+  } catch (err) {
+    console.log(err);
+  }
+  let bands = bandsMap;
+  for (let b = 0; b < bands.length; ++b) {
+    try {
+      let sep = b !== bands.length - 1 ? "," : ";";
+      let band = bands[b];
+      await fs.appendFileSync(
+        "wifi_bands.sql",
+        `\r\n    (${b}, '${band.key}', '${band.name}')${sep}`,
+        "utf8"
+      );
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  try {
+    await fs.appendFileSync("wifi_bands.sql", `\r\n\r\nUNLOCK TABLES;`, "utf8");
+  } catch (err) {
+    console.log(err);
+  }
 }
 
 async function getRadios(conn) {
@@ -505,7 +551,7 @@ DROP TABLE IF EXISTS 'wifi_channels';
 CREATE TABLE 'wifi_channels' (
   'country' int(11) NOT NULL COMMENT 'country numeric code',
   'platform' int(11) NOT NULL COMMENT 'platform oid',
-  'radio' smallint(5) DEFAULT NULL COMMENT 'radio-1: 1, radio-2: 2',
+  'radio' smallint(5) DEFAULT NULL COMMENT 'radio-1: 0, radio-2: 1',
   'band' int(11) NOT NULL COMMENT 'band oid',
   'bonding' smallint(5) DEFAULT NULL COMMENT 'high-throughput band-wide mode(0:20MHz,1:40MHz,2:80MHz)',
   'darrp' tinyint(1) DEFAULT NULL COMMENT 'if darrp has been choose.',
@@ -569,7 +615,7 @@ async function main() {
   const darrps = getDarrps();
 
   await buildWifiPlatformsSql();
-
+  await buildWifiBandsSql();
   await buildWifiChannelsSql();
 
   let conn = telnetFactory(start);
