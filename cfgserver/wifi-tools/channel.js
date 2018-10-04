@@ -662,11 +662,13 @@ async function main() {
 
               let channels = await queryChannels(conn);
 
-              console.log(
-                `'${++count}'. ${country.key}', '${
-                  platform.key
-                }', '${radio}', '${band}', '${bonding}', '${darrp}', '${channels}'`
-              );
+              if (params.debug) {
+                console.log(
+                  `'${++count}'. ${country.key}', '${
+                    platform.key
+                  }', '${radio}', '${band}', '${bonding}', '${darrp}', '${channels}'`
+                );
+              }
 
               await sqlAppend(
                 country.code,
