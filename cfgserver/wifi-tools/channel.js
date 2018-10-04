@@ -92,6 +92,43 @@ function getPlatforms() {
   ];
 }
 
+async function buildWifiPlatformsSql() {
+  const sql = `
+DROP TABLE IF EXISTS 'wifi_platforms';
+
+CREATE TABLE 'wifi_platforms' (
+  'oid' int(11) NOT NULL COMMENT 'platform oid',
+  'name' char(6) DEFAULT NULL COMMENT 'platform name',
+  'display' char(16) DEFAULT NULL COMMENT 'platform gui display',
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+LOCK TABLES 'wifi_platforms' WRITE;
+
+INSERT INTO 'wifi_platforms' VALUES `;
+
+  try {
+    await fs.writeFileSync("wifi_platforms.sql", sql, "utf8");
+  } catch (err) {
+    console.log(err);
+  }
+  let platforms = getPlatforms();
+  for(let p = 0; p < platforms.length; ++p){
+    try {
+      let sep = p !== platforms.length - 1 ? ',': ';';
+      let platform = platforms[p];
+      await fs.appendFileSync("wifi_platforms.sql", `\r\n    (${p}, '${platform.key}', '${platform.name}')${sep}`, "utf8");
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  try {
+    await fs.appendFileSync("wifi_platforms.sql", `\r\n\r\nUNLOCK TABLES;`, "utf8");
+  } catch (err) {
+    console.log(err);
+  }
+}
+
 function getCountries() {
   return [
     { key: "AA", code: 1 },
@@ -453,7 +490,7 @@ function telnetFactory(start) {
   return conn;
 }
 
-async function sqlFactory() {
+async function buildWifiChannelsSql() {
   const sql = `
 DROP TABLE IF EXISTS 'wifi_channels';
 
@@ -478,7 +515,7 @@ INSERT INTO 'wifi_channels' VALUES `;
   }
 }
 
-async function sqlEnd() {
+async function buildWifiChannelsSqlEnd() {
   const end = `
 (0, 0, 0, 0, 0, 0, '');
 
@@ -513,7 +550,7 @@ async function main() {
   let start = new Date();
 
   process.on("SIGINT", code => {
-    sqlEnd();
+    buildWifiChannelsSqlEnd();
     let end = new Date() - start;
     console.log("Execution time: %dms", end);
     process.exit(0);
@@ -523,7 +560,7 @@ async function main() {
   const countries = getCountries();
   const darrps = getDarrps();
 
-  await sqlFactory();
+  await buildWifiChannelsSql();
 
   let conn = telnetFactory(start);
   await conn.connect(params);
@@ -597,9 +634,11 @@ async function main() {
 
   await conn.destroy();
 
-  sqlEnd();
+  buildWifiChannelsSqlEnd();
   let end = new Date() - start;
   console.log("Execution time: %dms", end);
 }
 
-main();
+// main();
+
+buildWifiPlatformsSql();
