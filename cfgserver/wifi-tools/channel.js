@@ -18,7 +18,10 @@ const params = {
 
 async function getChannels(out) {
   let lines = _.split(out, "\n");
-  let channels = _.trimStart(lines[0], "*wireless_channel    <");
+  let wirelessLine = _.remove(lines, function(line) {
+    return line.includes("*wireless_channel");
+  });
+  let channels = _.trimStart(wirelessLine[0], "*wireless_channel    <");
   channels = _.trimEnd(channels, ">");
   return channels;
 }
