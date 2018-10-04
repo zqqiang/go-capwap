@@ -6,11 +6,13 @@ const _ = require("lodash");
 const params = {
   host: "172.16.95.49",
   port: 23,
-  timeout: 1500,
+  timeout: 5000,
+  execTimeout: 5000,
   username: "admin",
   password: "admin",
   pageSeparator: "--More--",
-  debug: true
+  // debug: true
+  debug: false
 };
 
 async function getChannels(out) {
@@ -20,223 +22,279 @@ async function getChannels(out) {
   return channels;
 }
 
+async function telnet(conn, cmd) {
+  let res = await conn.exec(cmd);
+  if (params.debug) {
+    let lines = _.split(res, "\n");
+    lines = _.remove(lines, function(line) {
+      return line.length !== 0;
+    });
+    if (lines.length) {
+      console.log(cmd, lines);
+    }
+  }
+  return res;
+}
+
 function getPlatforms() {
   return [
-    // "AP-11N",
-    // "220B",
-    // "210B",
-    // "222B",
-    // "112B",
-    // "320B",
-    // "11C",
-    // "14C",
-    // "223B",
-    // "28C",
-    "320C"
-    // "221C",
-    // "25D",
-    // "222C",
-    // "224D",
-    // "214B",
-    // "21D",
-    // "24D",
-    // "112D",
-    // "223C",
-    // "321C",
-    // "S321C",
-    // "S322C",
-    // "S323C",
-    // "S311C",
-    // "S313C",
-    // "S321CR",
-    // "S322CR",
-    // "S323CR",
-    // "S421E",
-    // "S422E",
-    // "S423E",
-    // "421E",
-    // "423E",
-    // "221E",
-    // "222E",
-    // "223E",
-    // "224E",
-    // "S221E",
-    // "S223E",
-    // "U421E",
-    // "U422EV",
-    // "U423E",
-    // "U221EV",
-    // "U223EV",
-    // "U24JEV",
-    // "U321EV",
-    // "U323EV"
+    "AP-11N",
+    "220B",
+    "210B",
+    "222B",
+    "112B",
+    "320B",
+    "11C",
+    "14C",
+    "223B",
+    "28C",
+    "320C",
+    "221C",
+    "25D",
+    "222C",
+    "224D",
+    "214B",
+    "21D",
+    "24D",
+    "112D",
+    "223C",
+    "321C",
+    "S321C",
+    "S322C",
+    "S323C",
+    "S311C",
+    "S313C",
+    "S321CR",
+    "S322CR",
+    "S323CR",
+    "S421E",
+    "S422E",
+    "S423E",
+    "421E",
+    "423E",
+    "221E",
+    "222E",
+    "223E",
+    "224E",
+    "S221E",
+    "S223E",
+    "U421E",
+    "U422EV",
+    "U423E",
+    "U221EV",
+    "U223EV",
+    "U24JEV",
+    "U321EV",
+    "U323EV"
   ];
 }
 
 function getCountries() {
   return [
-    // "AL",
-    // "DZ",
-    // "AO",
-    // "AR",
-    // "AM",
-    // "AU",
-    // "AT",
-    // "AZ",
-    // "BH",
-    // "BD",
-    // "BB",
-    // "BY",
-    // "BE",
-    // "BZ",
-    // "BO",
-    // "BA",
-    // "BR",
-    // "BN",
-    // "BG",
-    // "KH",
-    // "CL",
-    // "CN",
-    // "CO",
-    // "CR",
-    // "HR",
-    // "CY",
-    // "CZ",
-    // "DK",
-    // "DO",
-    // "EC",
-    // "EG",
-    // "SV",
-    // "EE",
-    // "FI",
-    // "FR",
-    // "GE",
-    // "DE",
-    // "GR",
-    // "GL",
-    // "GD",
-    // "GU",
-    // "GT",
-    // "HT",
-    // "HN",
-    // "HK",
-    // "HU",
-    // "IS",
-    // "IN",
-    // "ID",
-    // "IR",
-    // "IE",
-    // "IL",
-    // "IT",
-    // "JM",
-    // "JO",
-    // "KZ",
-    // "KE",
-    // "KP",
-    // "KR",
-    // "KW",
-    // "LV",
-    // "LB",
-    // "LI",
-    // "LT",
-    // "LU",
-    // "MO",
-    // "MK",
-    // "MY",
-    // "MT",
-    // "MX",
-    // "MC",
-    // "MA",
-    // "MZ",
-    // "MM",
-    // "NP",
-    // "NL",
-    // "AN",
-    // "AW",
-    // "NZ",
-    // "NO",
-    // "OM",
-    // "PK",
-    // "PA",
-    // "PG",
-    // "PY",
-    // "PE",
-    // "PH",
-    // "PL",
-    // "PT",
-    // "PR",
-    // "QA",
-    // "RO",
-    // "RU",
-    // "RW",
-    // "SA",
-    // "RS",
-    // "ME",
-    // "SG",
-    // "SK",
-    // "SI",
-    // "ZA",
-    // "ES",
-    // "LK",
-    // "SE",
-    // "SD",
-    // "CH",
-    // "SY",
-    // "TW",
-    // "TZ",
-    // "TH",
-    // "TT",
-    // "TN",
-    // "TR",
-    // "AE",
-    // "UA",
-    // "GB",
-    // "US",
-    // "PS",
-    // "UY",
-    // "UZ",
-    // "VE",
-    // "VN",
-    // "YE",
-    // "ZB",
-    // "ZW",
-    // "JP",
+    "AL",
+    "DZ",
+    "AO",
+    "AR",
+    "AM",
+    "AU",
+    "AT",
+    "AZ",
+    "BH",
+    "BD",
+    "BB",
+    "BY",
+    "BE",
+    "BZ",
+    "BO",
+    "BA",
+    "BR",
+    "BN",
+    "BG",
+    "KH",
+    "CL",
+    "CN",
+    "CO",
+    "CR",
+    "HR",
+    "CY",
+    "CZ",
+    "DK",
+    "DO",
+    "EC",
+    "EG",
+    "SV",
+    "EE",
+    "FI",
+    "FR",
+    "GE",
+    "DE",
+    "GR",
+    "GL",
+    "GD",
+    "GU",
+    "GT",
+    "HT",
+    "HN",
+    "HK",
+    "HU",
+    "IS",
+    "IN",
+    "ID",
+    "IR",
+    "IE",
+    "IL",
+    "IT",
+    "JM",
+    "JO",
+    "KZ",
+    "KE",
+    "KP",
+    "KR",
+    "KW",
+    "LV",
+    "LB",
+    "LI",
+    "LT",
+    "LU",
+    "MO",
+    "MK",
+    "MY",
+    "MT",
+    "MX",
+    "MC",
+    "MA",
+    "MZ",
+    "MM",
+    "NP",
+    "NL",
+    "AN",
+    "AW",
+    "NZ",
+    "NO",
+    "OM",
+    "PK",
+    "PA",
+    "PG",
+    "PY",
+    "PE",
+    "PH",
+    "PL",
+    "PT",
+    "PR",
+    "QA",
+    "RO",
+    "RU",
+    "RW",
+    "SA",
+    "RS",
+    "ME",
+    "SG",
+    "SK",
+    "SI",
+    "ZA",
+    "ES",
+    "LK",
+    "SE",
+    "SD",
+    "CH",
+    "SY",
+    "TW",
+    "TZ",
+    "TH",
+    "TT",
+    "TN",
+    "TR",
+    "AE",
+    "UA",
+    "GB",
+    "US",
+    "PS",
+    "UY",
+    "UZ",
+    "VE",
+    "VN",
+    "YE",
+    "ZB",
+    "ZW",
+    "JP",
     "CA"
   ];
 }
 
-function getRadio1Bands() {
-  return [
-    "802.11b",
-    "802.11g",
-    "802.11n",
-    "802.11n, g - only",
-    "802.11g - only",
-    "802.11n - only"
-  ];
-}
-
-function getRadio2Bands() {
-  return [
-    "802.11a",
-    "802.11n - 5G",
-    "802.11ac",
-    "802.11n - 5G - only",
-    "802.11ac, n - only",
-    "802.11ac - only"
-  ];
-}
-
-function getRadio1Bonding() {
-  return ["40MHz", "20MHz"];
-}
-
-function getRadio2Bonding() {
-  return ["80MHz", "40MHz", "20MHz"];
-}
-
 function getDarrps() {
   return ["enable", "disable"];
+}
+
+async function getBands(conn, platform, radio) {
+  await telnet(conn, "config wireless-controller wtp-profile");
+  await telnet(conn, `edit TempProfile`);
+  await telnet(conn, `config platform`);
+  await telnet(conn, `set type ${platform}`);
+  await telnet(conn, `end`);
+  await telnet(conn, `config ${radio}`);
+  let res = await telnet(conn, `set band ?`);
+  await telnet(conn, "end");
+  await telnet(conn, "abort");
+
+  let lines = _.split(res, "\n");
+  let bands = _.remove(lines, function(line) {
+    return _.startsWith(line, "802.11");
+  });
+  bands = _.map(bands, function(band) {
+    let o = _.split(band, " ");
+    return o[0];
+  });
+  // console.log(bands);
+  return bands;
+}
+
+async function getRadios(conn, platform) {
+  await telnet(conn, "config wireless-controller wtp-profile");
+  await telnet(conn, `edit TempProfile`);
+  await telnet(conn, `config platform`);
+  await telnet(conn, `set type ${platform}`);
+  await telnet(conn, `end`);
+  let res = await telnet(conn, `config ?`);
+  await telnet(conn, "end");
+
+  let lines = _.split(res, "\n");
+  let radios = _.remove(lines, function(line) {
+    return _.startsWith(line, "radio-");
+  });
+  radios = _.map(radios, function(radio) {
+    let o = _.split(radio, " ");
+    return o[0];
+  });
+  // console.log(radios);
+  return radios;
+}
+
+async function getBondings(conn, platform, radio, band) {
+  await telnet(conn, "config wireless-controller wtp-profile");
+  await telnet(conn, `edit TempProfile`);
+  await telnet(conn, `config platform`);
+  await telnet(conn, `set type ${platform}`);
+  await telnet(conn, `end`);
+  await telnet(conn, `config ${radio}`);
+  await telnet(conn, `set band ${band}`);
+  let res = await telnet(conn, `set channel-bonding ?`);
+  await telnet(conn, "end");
+  await telnet(conn, "abort");
+
+  let lines = _.split(res, "\n");
+  if (lines[0].includes(`command parse error`)) {
+    return [];
+  } else {
+    let bondings = _.remove(lines, function(line) {
+      return line.includes("MHz");
+    });
+    bondings = _.map(bondings, function(bonding) {
+      let o = _.split(bonding, " ");
+      return o[0];
+    });
+    // console.log(bondings);
+    return bondings;
+  }
 }
 
 async function queryChannels(
@@ -248,84 +306,121 @@ async function queryChannels(
   bonding,
   darrp
 ) {
-  await conn.exec("config wireless-controller wtp-profile");
-  await conn.exec(`edit TempProfile`);
-  await conn.exec(`config platform`);
-  await conn.exec(`set type ${platform}`);
-  await conn.exec(`end`);
-  await conn.exec(`set ap-country ${country}\r\ny`);
-  await conn.exec(`config ${radio}`);
-  await conn.exec(`set band ${band}`);
-  await conn.exec(`set channel-bonding ${bonding}`);
-  await conn.exec(`set darrp ${darrp}`);
+  await telnet(conn, "config wireless-controller wtp-profile");
+  await telnet(conn, `edit TempProfile`);
+  await telnet(conn, `config platform`);
+  await telnet(conn, `set type ${platform}`);
+  await telnet(conn, `end`);
+  await telnet(conn, `set ap-country ${country}\r\ny`);
+  await telnet(conn, `config ${radio}`);
+  await telnet(conn, `set band ${band}`);
+  await telnet(conn, `set channel-bonding ${bonding}`);
+  await telnet(conn, `set darrp ${darrp}`);
 
-  let res = await conn.exec("set channel ?");
+  let res = await telnet(conn, "set channel ?");
   let channels = await getChannels(res);
-  await conn.exec("\n");
-  await conn.exec("end");
-  await conn.exec("abort");
+  await telnet(conn, "\n");
+  await telnet(conn, "end");
+  await telnet(conn, "abort");
 
   console.log(
-    `${platform}, ${country}, ${radio}, '${band}', ${bonding}, ${darrp}, ${channels}`
+    `'${platform}', '${country}', '${radio}', '${band}', '${bonding}', '${darrp}', ${channels}`
   );
 }
 
+function telnetFactory(start) {
+  let conn = new Telnet();
+
+  conn.on("timeout", function() {
+    console.log("connection timeout!");
+    conn.end();
+  });
+
+  conn.on("end", function() {
+    console.log("connection end!");
+    let end = new Date() - start;
+    console.log("Execution time: %dms", end);
+  });
+
+  conn.on("close", function() {
+    if (params.debug) {
+      console.log("connection closed!");
+    }
+  });
+
+  conn.on("error", function() {
+    console.log("connection error!");
+  });
+
+  return conn;
+}
+
 async function main() {
+  let start = new Date();
+
   const platforms = getPlatforms();
   const countries = getCountries();
-  const radio1Bands = getRadio1Bands();
-  const radio2Bands = getRadio2Bands();
-  const radio1Bonding = getRadio1Bonding();
-  const radio2Bonding = getRadio2Bonding();
   const darrps = getDarrps();
 
-  let conn = new Telnet();
+  let conn = telnetFactory(start);
   await conn.connect(params);
 
   for (let p = 0; p < platforms.length; ++p) {
     let platform = platforms[p];
-    for (let c = 0; c < countries.length; ++c) {
-      let country = countries[c];
-      for (let ba = 0; ba < radio1Bands.length; ++ba) {
-        let band = radio1Bands[ba];
-        for (let bo = 0; bo < radio1Bonding.length; ++bo) {
-          let bonding = radio1Bonding[bo];
+    let radios = await getRadios(conn, platform);
+    for (let r = 0; r < radios.length; ++r) {
+      let radio = radios[r];
+      let bands = await getBands(conn, platform, radio);
+      for (let b = 0; b < bands.length; ++b) {
+        let band = bands[b];
+        let bondings = await getBondings(conn, platform, radio, band);
+        for (let bo = 0; bo < bondings.length; ++bo) {
+          let bonding = bondings[bo];
           for (let d = 0; d < darrps.length; ++d) {
             let darrp = darrps[d];
-            await queryChannels(
-              conn,
-              platform,
-              country,
-              "radio-1",
-              band,
-              bonding,
-              darrp
-            );
-          }
-        }
-      }
-      for (let ba = 0; ba < radio2Bands.length; ++ba) {
-        let band = radio1Bands[ba];
-        for (let bo = 0; bo < radio2Bonding.length; ++bo) {
-          let bonding = radio2Bonding[bo];
-          for (let d = 0; d < darrps.length; ++d) {
-            let darrp = darrps[d];
-            await queryChannels(
-              conn,
-              platform,
-              country,
-              "radio-2",
-              band,
-              bonding,
-              darrp
-            );
+            for (let c = 0; c < countries.length; ++c) {
+              let country = countries[c];
+              await queryChannels(
+                conn,
+                platform,
+                country,
+                radio,
+                band,
+                bonding,
+                darrp
+              );
+            }
           }
         }
       }
     }
   }
 
-  await conn.end();
+  await conn.destroy();
+
+  let end = new Date() - start;
+  console.log("Execution time: %dms", end);
 }
 
 main();
+
+async function debug() {
+  let conn = telnetFactory();
+  await conn.connect(params);
+
+  await queryChannels(
+    conn,
+    "AP-11N",
+    "GE",
+    "radio-1",
+    "802.11n",
+    "40MHz",
+    "enable"
+  );
+
+  await conn.destroy();
+}
+
+// debug();
+
+// 'AP-11N', 'GL', 'radio-1', '802.11n', '40MHz', 'enable', t channel
