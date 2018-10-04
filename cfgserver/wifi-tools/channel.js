@@ -11,8 +11,8 @@ const params = {
   username: "admin",
   password: "admin",
   pageSeparator: "--More--",
-  debug: true
-  // debug: false
+  // debug: true
+  debug: false
 };
 
 async function getChannels(out) {
@@ -28,9 +28,9 @@ async function telnet(conn, cmd) {
   let res = await conn.exec(cmd);
   if (params.debug) {
     let lines = _.split(res, "\n");
-    // lines = _.remove(lines, function(line) {
-    //   return line.length !== 0;
-    // });
+    lines = _.remove(lines, function(line) {
+      return line.length !== 0;
+    });
     if (lines.length) {
       console.log(count++, cmd, lines);
     }
@@ -279,7 +279,7 @@ async function getBondings(conn) {
 async function queryChannels(conn) {
   let res = await telnet(conn, "set channel ?");
   let channels = await getChannels(res);
-  console.log(`${channels}`);
+  return channels;
 }
 
 function telnetFactory(start) {
@@ -311,6 +311,12 @@ function telnetFactory(start) {
 
 async function main() {
   let start = new Date();
+
+  process.on("SIGINT", code => {
+    let end = new Date() - start;
+    console.log("Execution time: %dms", end);
+    process.exit(0);
+  });
 
   const platforms = getPlatforms();
   const countries = getCountries();
@@ -358,7 +364,11 @@ async function main() {
 
               await telnet(conn, `set darrp ${darrp}`);
 
-              await queryChannels(conn);
+              let channels = await queryChannels(conn);
+
+              console.log(
+                `'${++count}'. ${country}', '${platform}', '${radio}', '${band}', '${bonding}', '${darrp}', '${channels}'`
+              );
             }
           }
         }
