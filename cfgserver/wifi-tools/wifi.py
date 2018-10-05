@@ -4,27 +4,43 @@ from string import Template
 tree = ET.parse('mgmt-data.xml')
 root = tree.getroot()
 
-# platforms = root.findall('.//cw_platform_type/platform')
+platformSqlHeader = """
+DROP TABLE IF EXISTS 'wifi_platforms';
 
-# for platform in platforms:
-#     print(platform.tag, platform.attrib)
+CREATE TABLE 'wifi_platforms' (
+'oid' int(11) NOT NULL COMMENT 'platform oid',
+'captype' int(11) NOT NULL COMMENT 'platform.captype',
+'platformName' char(6) DEFAULT NULL COMMENT 'platform.name',
+'display' char(16) DEFAULT NULL COMMENT 'platform.help',
+'wtpName' char(6) DEFAULT NULL COMMENT 'wtpcap.name',
+'cap' int(11) NOT NULL COMMENT 'wtpcap.cap',
+'maxVaps' int(11) NOT NULL COMMENT 'wtpcap.max_vaps',
+'wanLan' int(11) NOT NULL COMMENT 'wtpcap.wan_lan',
+'maxLan' int(11) NOT NULL COMMENT 'wtpcap.max_lan: max lan port number',
+'bintMin' int(11) NOT NULL COMMENT 'wtpcap.bint_min: min beacon interval',
+'bintMax' int(11) NOT NULL COMMENT 'wtpcap.bint_max: max beacon interval'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-# wtpcaps = root.findall('.//cw_wtp_cap/wtpcap')
-
-# for wtpcap in wtpcaps:
-#     print(wtpcap.tag, wtpcap.attrib)
-#     radios = wtpcap.findall('radio')
-#     for radio in radios:
-#         print(radio.tag, radio.attrib)
+LOCK TABLES 'wifi_platforms' WRITE;
+"""
 
 
 def buildWifiPlatformSql():
     platforms = root.findall('.//cw_platform_type/platform')
-    for platform in platforms:
-        # print(platform.tag, platform.attrib)
-        line = Template('($captype, "$name", "$help"),').substitute(
-            platform.attrib)
-        print(line)
+    wtpcaps = root.findall('.//cw_wtp_cap/wtpcap')
+
+    f = open('wifi_platforms.sql', 'w')
+
+    f.write(platformSqlHeader)
+
+    for i, platform in enumerate(platforms):
+        for wtpcap in wtpcaps:
+            if wtpcap.attrib['captype'] == platform.attrib['captype']:
+                platformLine = Template("$captype,'$name', '$help',").substitute(
+                    platform.attrib)
+                wtpcapLine = Template(
+                    "'$name', $cap, $max_vaps, $wan_lan, $max_lan, $bint_min, $bint_max").substitute(wtpcap.attrib)
+                print("(%d, %s %s)" % (i + 1, platformLine, wtpcapLine))
 
 
 buildWifiPlatformSql()
