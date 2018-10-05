@@ -1,2 +1,4 @@
 package-lock.json
 *.exe
+.vscode
+node_modules
