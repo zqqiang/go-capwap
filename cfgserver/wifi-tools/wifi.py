@@ -26,7 +26,7 @@ LOCK TABLES 'wifi_platforms' WRITE;
 INSERT INTO 'wifi_platforms' VALUES 
 """
 
-platformSqlFooter = """
+sqlFooter = """
 UNLOCK TABLE;
 """
 
@@ -58,7 +58,38 @@ def buildWifiPlatformSql():
                 buildPlatformRowSql(f, i, platform, wtpcap,
                                     i == len(platforms) - 1)
 
-    f.write(platformSqlFooter)
+    f.write(sqlFooter)
 
 
 buildWifiPlatformSql()
+
+bandSqlHeader = """
+DROP TABLE IF EXISTS 'wifi_bands';
+
+CREATE TABLE 'wifi_bands' (
+  'oid' int(11) NOT NULL COMMENT 'band oid',
+  'name' char(16) DEFAULT NULL COMMENT 'band name',
+  'help' char(16) DEFAULT NULL COMMENT 'band help',
+  'bn' char(6) DEFAULT NULL COMMENT 'todo ?',
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+LOCK TABLES 'wifi_bands' WRITE;
+
+INSERT INTO 'wifi_bands' VALUES 
+"""
+
+
+def buildWifiBandSql():
+    bands = root.findall('.//wl_band_type/wlband')
+
+    f = open('wifi_bands.sql', 'w')
+
+    f.write(bandSqlHeader)
+
+    for i, band in enumerate(bands):
+        bandLine = Template('($name, $help, $bn)').substitute(band.attrib)
+
+    f.write(sqlFooter)
+
+
+buildWifiBandSql()
