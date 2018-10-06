@@ -22,7 +22,26 @@ CREATE TABLE 'wifi_platforms' (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES 'wifi_platforms' WRITE;
+
+INSERT INTO 'wifi_platforms' VALUES 
 """
+
+platformSqlFooter = """
+UNLOCK TABLE;
+"""
+
+
+def buildPlatformRowSql(f, index, platform, wtpcap):
+    platformLine = Template("$captype,'$name', '$help',").substitute(
+        platform.attrib)
+    wtpcapLine = Template(
+        "'$name', $cap, $max_vaps, $wan_lan, $max_lan, $bint_min, $bint_max").substitute(wtpcap.attrib)
+    f.write("   (%d, %s %s),\n" %
+            (index + 1, platformLine, wtpcapLine))
+
+
+def isCapTypeEqual(platform, wtpcap):
+    return wtpcap.attrib['captype'] == platform.attrib['captype']
 
 
 def buildWifiPlatformSql():
@@ -35,12 +54,10 @@ def buildWifiPlatformSql():
 
     for i, platform in enumerate(platforms):
         for wtpcap in wtpcaps:
-            if wtpcap.attrib['captype'] == platform.attrib['captype']:
-                platformLine = Template("$captype,'$name', '$help',").substitute(
-                    platform.attrib)
-                wtpcapLine = Template(
-                    "'$name', $cap, $max_vaps, $wan_lan, $max_lan, $bint_min, $bint_max").substitute(wtpcap.attrib)
-                print("(%d, %s %s)" % (i + 1, platformLine, wtpcapLine))
+            if isCapTypeEqual(platform, wtpcap):
+                buildPlatformRowSql(f, i, platform, wtpcap)
+
+    f.write(platformSqlFooter)
 
 
 buildWifiPlatformSql()
