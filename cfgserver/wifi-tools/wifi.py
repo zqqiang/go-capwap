@@ -31,13 +31,13 @@ UNLOCK TABLE;
 """
 
 
-def buildPlatformRowSql(f, index, platform, wtpcap):
+def buildPlatformRowSql(f, index, platform, wtpcap, last):
     platformLine = Template("$captype,'$name', '$help',").substitute(
         platform.attrib)
     wtpcapLine = Template(
         "'$name', $cap, $max_vaps, $wan_lan, $max_lan, $bint_min, $bint_max").substitute(wtpcap.attrib)
-    f.write("   (%d, %s %s),\n" %
-            (index + 1, platformLine, wtpcapLine))
+    f.write("(%d, %s %s)%s\n" %
+            (index + 1, platformLine, wtpcapLine, ',' if not last else ';'))
 
 
 def isCapTypeEqual(platform, wtpcap):
@@ -55,7 +55,8 @@ def buildWifiPlatformSql():
     for i, platform in enumerate(platforms):
         for wtpcap in wtpcaps:
             if isCapTypeEqual(platform, wtpcap):
-                buildPlatformRowSql(f, i, platform, wtpcap)
+                buildPlatformRowSql(f, i, platform, wtpcap,
+                                    i == len(platforms) - 1)
 
     f.write(platformSqlFooter)
 
