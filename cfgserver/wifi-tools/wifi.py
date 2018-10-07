@@ -79,6 +79,12 @@ INSERT INTO 'wifi_bands' VALUES
 """
 
 
+def buildBandRowSql(f, index, band, last):
+    bandLine = Template("'$name', '$help', '$bn'").substitute(band.attrib)
+    f.write("(%d, %s)%s\n" %
+            (index + 1, bandLine, ',' if not last else ';'))
+
+
 def buildWifiBandSql():
     bands = root.findall('.//wl_band_type/wlband')
 
@@ -87,7 +93,7 @@ def buildWifiBandSql():
     f.write(bandSqlHeader)
 
     for i, band in enumerate(bands):
-        bandLine = Template('($name, $help, $bn)').substitute(band.attrib)
+        buildBandRowSql(f, i, band, i == len(bands) - 1)
 
     f.write(sqlFooter)
 
