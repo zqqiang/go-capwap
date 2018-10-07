@@ -99,3 +99,52 @@ def buildWifiBandSql():
 
 
 buildWifiBandSql()
+
+radioSqlHeader = """
+DROP TABLE IF EXISTS 'wifi_radios';
+
+CREATE TABLE 'wifi_radios' (
+  'oid' int(11) NOT NULL COMMENT 'radio oid',
+  'platformOid' int(11) NOT NULL COMMENT 'platform oid',
+  'radioId' int(3) DEFAULT NULL COMMENT 'radio id',
+  'maxMcs11n' int(8) DEFAULT NULL COMMENT '',
+  'maxMcs11ac' int(8) DEFAULT NULL COMMENT '',
+  'bandMask' char(64) DEFAULT NULL COMMENT '',
+  'bandMaskGui' char(64) DEFAULT NULL COMMENT '',
+  'bandDflt' char(64) DEFAULT NULL COMMENT '',
+  'powMax2g' int(8) DEFAULT NULL COMMENT '',
+  'powMax5g' int(8) DEFAULT NULL COMMENT '',
+  'operMode' char(64) DEFAULT NULL COMMENT ''
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+LOCK TABLES 'wifi_radios' WRITE;
+
+INSERT INTO 'wifi_radios' VALUES 
+"""
+
+def buildRadioRowSql(f, radioOid, platformOid, radio, last):
+    radioLine = Template("$id, $max_mcs_11n, $max_mcs_11ac, '$band_mask', '$band_mask_gui', '$band_dflt', $pow_max_2g, $pow_max_5g, '$oper_mode'").substitute(radio.attrib)
+    f.write("(%d, %d, %s)%s\n" %
+            (radioOid, platformOid, radioLine, ',' if not last else ';'))
+
+def buildWifiRadiosSql():
+    platforms = root.findall('.//cw_platform_type/platform')
+    wtpcaps = root.findall('.//cw_wtp_cap/wtpcap')
+
+    f = open('wifi_radios.sql', 'w')
+
+    radioOid = 0
+
+    f.write(radioSqlHeader)
+
+    for i, platform in enumerate(platforms):
+        for wtpcap in wtpcaps:
+            if isCapTypeEqual(platform, wtpcap):
+                radios = list(wtpcap.iter('radio'))
+                for r, radio in enumerate(radios):
+                    radioOid += 1
+                    buildRadioRowSql(f, radioOid, i + 1, radio, (i == len(platforms) - 1) and (r == len(radios) -1 ))
+
+    f.write(sqlFooter)
+
+buildWifiRadiosSql()
