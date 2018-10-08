@@ -148,3 +148,12 @@ def buildWifiRadiosSql():
     f.write(sqlFooter)
 
 buildWifiRadiosSql()
+
+
+def buildWifiChannelsSql():
+    countries = root.findall('.//country/channel')
+    print(countries)
+    for country in countries:
+        print(country.tag, country.attrib)
+
+buildWifiChannelsSql()
