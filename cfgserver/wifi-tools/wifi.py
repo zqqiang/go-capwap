@@ -151,9 +151,18 @@ buildWifiRadiosSql()
 
 
 def buildWifiChannelsSql():
-    countries = root.findall('.//country/channel')
-    print(countries)
-    for country in countries:
-        print(country.tag, country.attrib)
+    countries = root.findall('.//file[@name="wlchanlist.txt"]')
+    country = countries[0]
+
+    # f = open('channels.xml', 'w')
+    # f.write(country.text.strip()
+
+    # ctree = ET.parse('channels.xml')
+    # croot = tree.getroot()
+    
+    ctree = ET.fromstring(country.text.strip())
+    croot = ctree.getroot()
+
+    print(croot)
 
 buildWifiChannelsSql()
