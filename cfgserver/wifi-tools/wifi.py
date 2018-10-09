@@ -122,10 +122,13 @@ LOCK TABLES 'wifi_radios' WRITE;
 INSERT INTO 'wifi_radios' VALUES 
 """
 
+
 def buildRadioRowSql(f, radioOid, platformOid, radio, last):
-    radioLine = Template("$id, $max_mcs_11n, $max_mcs_11ac, '$band_mask', '$band_mask_gui', '$band_dflt', $pow_max_2g, $pow_max_5g, '$oper_mode'").substitute(radio.attrib)
+    radioLine = Template(
+        "$id, $max_mcs_11n, $max_mcs_11ac, '$band_mask', '$band_mask_gui', '$band_dflt', $pow_max_2g, $pow_max_5g, '$oper_mode'").substitute(radio.attrib)
     f.write("(%d, %d, %s)%s\n" %
             (radioOid, platformOid, radioLine, ',' if not last else ';'))
+
 
 def buildWifiRadiosSql():
     platforms = root.findall('.//cw_platform_type/platform')
@@ -143,26 +146,46 @@ def buildWifiRadiosSql():
                 radios = list(wtpcap.iter('radio'))
                 for r, radio in enumerate(radios):
                     radioOid += 1
-                    buildRadioRowSql(f, radioOid, i + 1, radio, (i == len(platforms) - 1) and (r == len(radios) -1 ))
+                    buildRadioRowSql(
+                        f, radioOid, i + 1, radio, (i == len(platforms) - 1) and (r == len(radios) - 1))
 
     f.write(sqlFooter)
 
+
 buildWifiRadiosSql()
+
+
+def buildWifiChannelRow(f, country, channel, last):
+    if "bonding" in channel.attrib:
+        channelLine = Template(
+            "$band, '$bn', '$bonding', $outdoor").substitute(channel.attrib)
+    else:
+        channelLine = Template(
+            "$band, '$bn', '', $outdoor").substitute(channel.attrib)
+
+    f.write("(%s, %s)%s\n" %
+            (country.attrib["code"], channelLine, ',' if not last else ';'))
 
 
 def buildWifiChannelsSql():
     countries = root.findall('.//file[@name="wlchanlist.txt"]')
     country = countries[0]
 
-    # f = open('channels.xml', 'w')
-    # f.write(country.text.strip()
+    f = open('wifi_channels.sql', 'w')
 
-    # ctree = ET.parse('channels.xml')
-    # croot = tree.getroot()
-    
-    ctree = ET.fromstring(country.text.strip())
+    cf = open('chanlist.xml', 'w')
+    cf.write(country.text.strip())
+
+    ctree = ET.parse('chanlist.xml')
     croot = ctree.getroot()
 
-    print(croot)
+    countries = croot.findall('.//country')
+    channels = croot.findall('.//channel')
+
+    for cn, country in enumerate(countries):
+        for ch, channel in enumerate(channels):
+            buildWifiChannelRow(f, country, channel,
+                                (cn == len(countries) - 1 and ch == len(channels) - 1))
+
 
 buildWifiChannelsSql()
