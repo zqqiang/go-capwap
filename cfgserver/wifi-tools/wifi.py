@@ -155,6 +155,24 @@ def buildWifiRadiosSql():
 buildWifiRadiosSql()
 
 
+channelSqlHeader = """
+DROP TABLE IF EXISTS 'wifi_channels';
+
+CREATE TABLE 'wifi_channels' (
+  'country' int(11) NOT NULL COMMENT 'country code',
+  'band' int(11) NOT NULL COMMENT '',
+  'bn' char(6) NOT NULL COMMENT 'bn',
+  'bonding' char(6) NOT NULL COMMENT 'bonding: 20MHz, 40MHz, 80MHz',
+  'outdoor' int(3) NOT NULL COMMENT 'outdoor: 0 disable, 1 enable',
+  'channels' char(64) NOT NULL COMMENT '',
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+LOCK TABLES 'wifi_channels' WRITE;
+
+INSERT INTO 'wifi_channels' VALUES 
+"""
+
+
 def buildWifiChannelRow(f, country, channel, last):
     if "bonding" in channel.attrib:
         channelLine = Template(
@@ -163,8 +181,8 @@ def buildWifiChannelRow(f, country, channel, last):
         channelLine = Template(
             "$band, '$bn', '', $outdoor").substitute(channel.attrib)
 
-    f.write("(%s, %s)%s\n" %
-            (country.attrib["code"], channelLine, ',' if not last else ';'))
+    f.write("(%s, %s, '%s')%s\n" %
+            (country.attrib["code"], channelLine, channel.text, ',' if not last else ';'))
 
 
 def buildWifiChannelsSql():
@@ -182,10 +200,14 @@ def buildWifiChannelsSql():
     countries = croot.findall('.//country')
     channels = croot.findall('.//channel')
 
+    f.write(channelSqlHeader)
+
     for cn, country in enumerate(countries):
         for ch, channel in enumerate(channels):
             buildWifiChannelRow(f, country, channel,
                                 (cn == len(countries) - 1 and ch == len(channels) - 1))
+
+    f.write(sqlFooter)
 
 
 buildWifiChannelsSql()
