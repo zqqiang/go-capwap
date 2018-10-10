@@ -5,25 +5,25 @@ tree = ET.parse('mgmt-data.xml')
 root = tree.getroot()
 
 platformSqlHeader = """
-DROP TABLE IF EXISTS 'wifi_platforms';
+DROP TABLE IF EXISTS `wifi_platforms`;
 
-CREATE TABLE 'wifi_platforms' (
-'oid' int(11) NOT NULL COMMENT 'platform oid',
-'captype' int(11) NOT NULL COMMENT 'platform.captype',
-'platformName' char(6) DEFAULT NULL COMMENT 'platform.name',
-'display' char(16) DEFAULT NULL COMMENT 'platform.help',
-'wtpName' char(6) DEFAULT NULL COMMENT 'wtpcap.name',
-'cap' int(11) NOT NULL COMMENT 'wtpcap.cap',
-'maxVaps' int(11) NOT NULL COMMENT 'wtpcap.max_vaps',
-'wanLan' int(11) NOT NULL COMMENT 'wtpcap.wan_lan',
-'maxLan' int(11) NOT NULL COMMENT 'wtpcap.max_lan: max lan port number',
-'bintMin' int(11) NOT NULL COMMENT 'wtpcap.bint_min: min beacon interval',
-'bintMax' int(11) NOT NULL COMMENT 'wtpcap.bint_max: max beacon interval'
+CREATE TABLE `wifi_platforms` (
+`oid` int(11) NOT NULL COMMENT 'platform oid',
+`captype` int(11) NOT NULL COMMENT 'platform.captype',
+`platformName` char(6) DEFAULT NULL COMMENT 'platform.name',
+`display` char(16) DEFAULT NULL COMMENT 'platform.help',
+`wtpName` char(6) DEFAULT NULL COMMENT 'wtpcap.name',
+`cap` int(11) NOT NULL COMMENT 'wtpcap.cap',
+`maxVaps` int(11) NOT NULL COMMENT 'wtpcap.max_vaps',
+`wanLan` int(11) NOT NULL COMMENT 'wtpcap.wan_lan',
+`maxLan` int(11) NOT NULL COMMENT 'wtpcap.max_lan: max lan port number',
+`bintMin` int(11) NOT NULL COMMENT 'wtpcap.bint_min: min beacon interval',
+`bintMax` int(11) NOT NULL COMMENT 'wtpcap.bint_max: max beacon interval'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-LOCK TABLES 'wifi_platforms' WRITE;
+LOCK TABLES `wifi_platforms` WRITE;
 
-INSERT INTO 'wifi_platforms' VALUES 
+INSERT INTO `wifi_platforms` VALUES 
 """
 
 sqlFooter = """
@@ -64,18 +64,18 @@ def buildWifiPlatformSql():
 buildWifiPlatformSql()
 
 bandSqlHeader = """
-DROP TABLE IF EXISTS 'wifi_bands';
+DROP TABLE IF EXISTS `wifi_bands`;
 
-CREATE TABLE 'wifi_bands' (
-  'oid' int(11) NOT NULL COMMENT 'band oid',
-  'name' char(16) DEFAULT NULL COMMENT 'band name',
-  'help' char(16) DEFAULT NULL COMMENT 'band help',
-  'bn' char(6) DEFAULT NULL COMMENT 'todo ?',
+CREATE TABLE `wifi_bands` (
+  `oid` int(11) NOT NULL COMMENT 'band oid',
+  `name` char(16) DEFAULT NULL COMMENT 'band name',
+  `help` char(16) DEFAULT NULL COMMENT 'band help',
+  `bn` char(6) DEFAULT NULL COMMENT 'todo ?'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-LOCK TABLES 'wifi_bands' WRITE;
+LOCK TABLES `wifi_bands` WRITE;
 
-INSERT INTO 'wifi_bands' VALUES 
+INSERT INTO `wifi_bands` VALUES 
 """
 
 
@@ -101,25 +101,25 @@ def buildWifiBandSql():
 buildWifiBandSql()
 
 radioSqlHeader = """
-DROP TABLE IF EXISTS 'wifi_radios';
+DROP TABLE IF EXISTS `wifi_radios`;
 
-CREATE TABLE 'wifi_radios' (
-  'oid' int(11) NOT NULL COMMENT 'radio oid',
-  'platformOid' int(11) NOT NULL COMMENT 'platform oid',
-  'radioId' int(3) DEFAULT NULL COMMENT 'radio id',
-  'maxMcs11n' int(8) DEFAULT NULL COMMENT '',
-  'maxMcs11ac' int(8) DEFAULT NULL COMMENT '',
-  'bandMask' char(64) DEFAULT NULL COMMENT '',
-  'bandMaskGui' char(64) DEFAULT NULL COMMENT '',
-  'bandDflt' char(64) DEFAULT NULL COMMENT '',
-  'powMax2g' int(8) DEFAULT NULL COMMENT '',
-  'powMax5g' int(8) DEFAULT NULL COMMENT '',
-  'operMode' char(64) DEFAULT NULL COMMENT ''
+CREATE TABLE `wifi_radios` (
+  `oid` int(11) NOT NULL COMMENT 'radio oid',
+  `platformOid` int(11) NOT NULL COMMENT 'platform oid',
+  `radioId` int(3) DEFAULT NULL COMMENT 'radio id',
+  `maxMcs11n` int(8) DEFAULT NULL COMMENT '',
+  `maxMcs11ac` int(8) DEFAULT NULL COMMENT '',
+  `bandMask` char(64) DEFAULT NULL COMMENT '',
+  `bandMaskGui` char(64) DEFAULT NULL COMMENT '',
+  `bandDflt` char(64) DEFAULT NULL COMMENT '',
+  `powMax2g` int(8) DEFAULT NULL COMMENT '',
+  `powMax5g` int(8) DEFAULT NULL COMMENT '',
+  `operMode` char(64) DEFAULT NULL COMMENT ''
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-LOCK TABLES 'wifi_radios' WRITE;
+LOCK TABLES `wifi_radios` WRITE;
 
-INSERT INTO 'wifi_radios' VALUES 
+INSERT INTO `wifi_radios` VALUES 
 """
 
 
@@ -156,20 +156,20 @@ buildWifiRadiosSql()
 
 
 channelSqlHeader = """
-DROP TABLE IF EXISTS 'wifi_channels';
+DROP TABLE IF EXISTS `wifi_channels`;
 
-CREATE TABLE 'wifi_channels' (
-  'country' int(11) NOT NULL COMMENT 'country code',
-  'band' int(11) NOT NULL COMMENT '',
-  'bn' char(6) NOT NULL COMMENT 'bn',
-  'bonding' char(6) NOT NULL COMMENT 'bonding: 20MHz, 40MHz, 80MHz',
-  'outdoor' int(3) NOT NULL COMMENT 'outdoor: 0 disable, 1 enable',
-  'channels' char(64) NOT NULL COMMENT '',
+CREATE TABLE `wifi_channels` (
+  `country` int(11) NOT NULL COMMENT 'country code',
+  `band` int(11) NOT NULL COMMENT '',
+  `bn` char(6) NOT NULL COMMENT 'bn',
+  `bonding` char(6) NOT NULL COMMENT 'bonding: 20MHz, 40MHz, 80MHz',
+  `outdoor` int(3) NOT NULL COMMENT 'outdoor: 0 disable, 1 enable',
+  `channels` char(64) NOT NULL COMMENT ''
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-LOCK TABLES 'wifi_channels' WRITE;
+LOCK TABLES `wifi_channels` WRITE;
 
-INSERT INTO 'wifi_channels' VALUES 
+INSERT INTO `wifi_channels` VALUES 
 """
 
 
