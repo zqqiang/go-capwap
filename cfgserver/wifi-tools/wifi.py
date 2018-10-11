@@ -21,7 +21,8 @@ CREATE TABLE `wifi_platforms` (
 `wanLan` int(11) NOT NULL COMMENT 'wtpcap.wan_lan',
 `maxLan` int(11) NOT NULL COMMENT 'wtpcap.max_lan: max lan port number',
 `bintMin` int(11) NOT NULL COMMENT 'wtpcap.bint_min: min beacon interval',
-`bintMax` int(11) NOT NULL COMMENT 'wtpcap.bint_max: max beacon interval'
+`bintMax` int(11) NOT NULL COMMENT 'wtpcap.bint_max: max beacon interval',
+PRIMARY KEY (`oid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `wifi_platforms` WRITE;
@@ -73,8 +74,9 @@ CREATE TABLE `wifi_bands` (
   `oid` int(11) NOT NULL COMMENT 'band oid',
   `fosVersion` char(8) NOT NULL COMMENT 'fos version',
   `name` char(16) DEFAULT NULL COMMENT 'band name',
-  `help` char(16) DEFAULT NULL COMMENT 'band help',
-  `bn` char(6) DEFAULT NULL COMMENT 'todo ?'
+  `help` char(32) DEFAULT NULL COMMENT 'band help',
+  `bn` char(6) DEFAULT NULL COMMENT 'todo ?',
+  PRIMARY KEY (`oid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `wifi_bands` WRITE;
@@ -117,9 +119,10 @@ CREATE TABLE `wifi_radios` (
   `bandMask` char(64) DEFAULT NULL COMMENT '',
   `bandMaskGui` char(64) DEFAULT NULL COMMENT '',
   `bandDflt` char(64) DEFAULT NULL COMMENT '',
-  `powMax2g` int(8) DEFAULT NULL COMMENT '',
-  `powMax5g` int(8) DEFAULT NULL COMMENT '',
-  `operMode` char(64) DEFAULT NULL COMMENT ''
+  `powMax2g` int(8) DEFAULT NULL COMMENT 'band 2g, auto tx power, tx power max dBm',
+  `powMax5g` int(8) DEFAULT NULL COMMENT 'band 5g, auto tx power, tx power max dBm',
+  `operMode` char(64) DEFAULT NULL COMMENT 'disable: Disabled, fg: Dedicated Monitor, ap: Access Point, apbg2: ?',
+  PRIMARY KEY (`oid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `wifi_radios` WRITE;
@@ -168,9 +171,9 @@ CREATE TABLE `wifi_channels` (
   `country` int(11) NOT NULL COMMENT 'country code',
   `band` int(11) NOT NULL COMMENT '',
   `bn` char(6) NOT NULL COMMENT 'bn',
-  `bonding` char(6) NOT NULL COMMENT 'bonding: 20MHz, 40MHz, 80MHz',
+  `bonding` char(6) NOT NULL COMMENT 'bonding: none, all plus, minus, 80MHz',
   `outdoor` int(3) NOT NULL COMMENT 'outdoor: 0 disable, 1 enable',
-  `channels` char(64) NOT NULL COMMENT ''
+  `channels` char(128) NOT NULL COMMENT ''
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `wifi_channels` WRITE;
@@ -185,10 +188,15 @@ def buildWifiChannelRow(f, country, channel, last):
             "$band, '$bn', '$bonding', $outdoor").substitute(channel.attrib)
     else:
         channelLine = Template(
-            "$band, '$bn', '', $outdoor").substitute(channel.attrib)
+            "$band, '$bn', 'none', $outdoor").substitute(channel.attrib)
+
+    if channel.text != None:
+        channels = channel.text
+    else:
+        channels = ''
 
     f.write("('%s', %s, %s, '%s')%s\n" %
-            (fosVersion, country.attrib["code"], channelLine, channel.text, ',' if not last else ';'))
+            (fosVersion, country.attrib["code"], channelLine, channels, ',' if not last else ';'))
 
 
 def buildWifiChannelsSql():
@@ -204,11 +212,12 @@ def buildWifiChannelsSql():
     croot = ctree.getroot()
 
     countries = croot.findall('.//country')
-    channels = croot.findall('.//channel')
 
     f.write(channelSqlHeader)
 
     for cn, country in enumerate(countries):
+        cond = './/country[@code="{0}"]/channel'.format(country.attrib['code'])
+        channels = croot.findall(cond)
         for ch, channel in enumerate(channels):
             buildWifiChannelRow(f, country, channel,
                                 (cn == len(countries) - 1 and ch == len(channels) - 1))
