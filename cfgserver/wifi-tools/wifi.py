@@ -4,11 +4,14 @@ from string import Template
 tree = ET.parse('mgmt-data.xml')
 root = tree.getroot()
 
+fosVersion = '600'
+
 platformSqlHeader = """
 DROP TABLE IF EXISTS `wifi_platforms`;
 
 CREATE TABLE `wifi_platforms` (
 `oid` int(11) NOT NULL COMMENT 'platform oid',
+`fosVersion` char(8) NOT NULL COMMENT 'fos version',
 `captype` int(11) NOT NULL COMMENT 'platform.captype',
 `platformName` char(6) DEFAULT NULL COMMENT 'platform.name',
 `display` char(16) DEFAULT NULL COMMENT 'platform.help',
@@ -36,8 +39,8 @@ def buildPlatformRowSql(f, index, platform, wtpcap, last):
         platform.attrib)
     wtpcapLine = Template(
         "'$name', $cap, $max_vaps, $wan_lan, $max_lan, $bint_min, $bint_max").substitute(wtpcap.attrib)
-    f.write("(%d, %s %s)%s\n" %
-            (index + 1, platformLine, wtpcapLine, ',' if not last else ';'))
+    f.write("(%d, '%s', %s %s)%s\n" %
+            (index + 1, fosVersion, platformLine, wtpcapLine, ',' if not last else ';'))
 
 
 def isCapTypeEqual(platform, wtpcap):
@@ -68,6 +71,7 @@ DROP TABLE IF EXISTS `wifi_bands`;
 
 CREATE TABLE `wifi_bands` (
   `oid` int(11) NOT NULL COMMENT 'band oid',
+  `fosVersion` char(8) NOT NULL COMMENT 'fos version',
   `name` char(16) DEFAULT NULL COMMENT 'band name',
   `help` char(16) DEFAULT NULL COMMENT 'band help',
   `bn` char(6) DEFAULT NULL COMMENT 'todo ?'
@@ -81,8 +85,8 @@ INSERT INTO `wifi_bands` VALUES
 
 def buildBandRowSql(f, index, band, last):
     bandLine = Template("'$name', '$help', '$bn'").substitute(band.attrib)
-    f.write("(%d, %s)%s\n" %
-            (index + 1, bandLine, ',' if not last else ';'))
+    f.write("(%d, '%s', %s)%s\n" %
+            (index + 1, fosVersion, bandLine, ',' if not last else ';'))
 
 
 def buildWifiBandSql():
@@ -105,6 +109,7 @@ DROP TABLE IF EXISTS `wifi_radios`;
 
 CREATE TABLE `wifi_radios` (
   `oid` int(11) NOT NULL COMMENT 'radio oid',
+  `fosVersion` char(8) NOT NULL COMMENT 'fos version',
   `platformOid` int(11) NOT NULL COMMENT 'platform oid',
   `radioId` int(3) DEFAULT NULL COMMENT 'radio id',
   `maxMcs11n` int(8) DEFAULT NULL COMMENT '',
@@ -126,8 +131,8 @@ INSERT INTO `wifi_radios` VALUES
 def buildRadioRowSql(f, radioOid, platformOid, radio, last):
     radioLine = Template(
         "$id, $max_mcs_11n, $max_mcs_11ac, '$band_mask', '$band_mask_gui', '$band_dflt', $pow_max_2g, $pow_max_5g, '$oper_mode'").substitute(radio.attrib)
-    f.write("(%d, %d, %s)%s\n" %
-            (radioOid, platformOid, radioLine, ',' if not last else ';'))
+    f.write("(%d, '%s', %d, %s)%s\n" %
+            (radioOid, fosVersion, platformOid, radioLine, ',' if not last else ';'))
 
 
 def buildWifiRadiosSql():
@@ -159,6 +164,7 @@ channelSqlHeader = """
 DROP TABLE IF EXISTS `wifi_channels`;
 
 CREATE TABLE `wifi_channels` (
+  `fosVersion` char(8) NOT NULL COMMENT 'fos version',
   `country` int(11) NOT NULL COMMENT 'country code',
   `band` int(11) NOT NULL COMMENT '',
   `bn` char(6) NOT NULL COMMENT 'bn',
@@ -181,8 +187,8 @@ def buildWifiChannelRow(f, country, channel, last):
         channelLine = Template(
             "$band, '$bn', '', $outdoor").substitute(channel.attrib)
 
-    f.write("(%s, %s, '%s')%s\n" %
-            (country.attrib["code"], channelLine, channel.text, ',' if not last else ';'))
+    f.write("('%s', %s, %s, '%s')%s\n" %
+            (fosVersion, country.attrib["code"], channelLine, channel.text, ',' if not last else ';'))
 
 
 def buildWifiChannelsSql():
