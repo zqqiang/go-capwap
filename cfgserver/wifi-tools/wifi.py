@@ -226,3 +226,48 @@ def buildWifiChannelsSql():
 
 
 buildWifiChannelsSql()
+
+
+countrySqlHeader = """
+DROP TABLE IF EXISTS `wifi_countries`;
+
+CREATE TABLE `wifi_countries` (
+  `oid` int(11) NOT NULL COMMENT 'country oid',
+  `fosVersion` char(8) NOT NULL COMMENT 'fos version',
+  `code` int(11) NOT NULL COMMENT 'country code',
+  `dmn` int(11) NOT NULL COMMENT 'country dmn ?',
+  `iso` char(8) NOT NULL COMMENT 'country iso name',
+  `name` char(64) NOT NULL COMMENT 'country name',
+  PRIMARY KEY (`oid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+LOCK TABLES `wifi_countries` WRITE;
+
+INSERT INTO `wifi_countries` VALUES 
+"""
+
+
+def buildWifiCountryRow(f, countryOid, country, last):
+    countryLine = Template(
+        "$code, $dmn, '$iso', '$name'").substitute(country.attrib)
+    f.write("(%d, '%s', %s)%s\n" %
+            (countryOid, fosVersion, countryLine, ',' if not last else ';'))
+
+
+def buildWifiCountriesSql():
+    ctree = ET.parse('chanlist.xml')
+    croot = ctree.getroot()
+
+    countries = croot.findall('.//country')
+
+    f = open('wifi_countries.sql', 'w')
+
+    f.write(countrySqlHeader)
+
+    for cn, country in enumerate(countries):
+        buildWifiCountryRow(f, cn + 1, country, (cn == len(countries) - 1))
+
+    f.write(sqlFooter)
+
+
+buildWifiCountriesSql()
