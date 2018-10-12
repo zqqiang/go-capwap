@@ -6,6 +6,80 @@ root = tree.getroot()
 
 fosVersion = '600'
 
+countryNotForAp = [
+    "511",     # Debug
+    "0",       # No country set
+    "124",     # Canada
+    "392",     # Japan
+    "412",     # South Korea
+    "840",     # United States
+    "393",     # Japan(JP1)
+    "394",     # Japan(JP0)
+    "395",     # Japan(JP1-1)
+    "396",     # Japan(JE1)
+    "397",     # Japan(JE2)
+    "4006",    # Japan(JP6)
+    "4007",    # Japan(J7)
+    "4008",    # Japan(J8)
+    "4009",    # Japan(J9)
+    "4010",    # Japan(J10)
+    "4011",    # Japan(J11)
+    "4012",    # Japan(J12)
+    "4013",    # Japan(J13)
+    "4015",    # Japan(J15)
+    "4016",    # Japan(J16)
+    "4017",    # Japan(J17)
+    "4018",    # Japan(J18)
+    "4019",    # Japan(J19)
+    "4020",    # Japan(J20)
+    "4021",    # Japan(J21)
+    "4022",    # Japan(J22)
+    "4023",    # Japan(J23)
+    "4024",    # Japan(J24)
+    "4025",    # Japan(J25)
+    "4026",    # Japan(J26)
+    "4027",    # Japan(J27)
+    "4028",    # Japan(J28)
+    "4029",    # Japan(J29)
+    "4030",    # Japan(J30)
+    "4031",    # Japan(J31)
+    "4032",    # Japan(J32)
+    "4033",    # Japan(J33)
+    "4034",    # Japan(J34)
+    "4035",    # Japan(J35)
+    "4036",    # Japan(J36)
+    "4037",    # Japan(J37)
+    "4038",    # Japan(J38)
+    "4039",    # Japan(J39)
+    "4040",    # Japan(J40)
+    "4041",    # Japan(J41)
+    "4042",    # Japan(J42)
+    "4043",    # Japan(J43)
+    "4044",    # Japan(J44)
+    "4045",    # Japan(J45)
+    "4046",    # Japan(J46)
+    "4047",    # Japan(J47)
+    "4048",    # Japan(J48)
+    "4049",    # Japan(J49)
+    "4050",    # Japan(J50)
+    "4051",    # Japan(J51)
+    "4052",    # Japan(J52)
+    "4053",    # Japan(J53)
+    "4054",    # Japan(J54)
+    "4055",    # Japan(J55)
+    "4056",    # Japan(J56)
+    "4057",    # Japan(J57)
+    "4058",    # Japan(J58)
+    "4059",    # Japan(J59)
+    "5000",    # Australia for AP only
+    "5002"     # Belgium/Cisco implementation
+]
+
+
+def isCountryForAp(countryCode):
+    return countryCode not in countryNotForAp
+
+
 platformSqlHeader = """
 DROP TABLE IF EXISTS `wifi_platforms`;
 
@@ -216,11 +290,13 @@ def buildWifiChannelsSql():
     f.write(channelSqlHeader)
 
     for cn, country in enumerate(countries):
-        cond = './/country[@code="{0}"]/channel'.format(country.attrib['code'])
-        channels = croot.findall(cond)
-        for ch, channel in enumerate(channels):
-            buildWifiChannelRow(f, country, channel,
-                                (cn == len(countries) - 1 and ch == len(channels) - 1))
+        if isCountryForAp(country.attrib['code']):
+            cond = './/country[@code="{0}"]/channel'.format(
+                country.attrib['code'])
+            channels = croot.findall(cond)
+            for ch, channel in enumerate(channels):
+                buildWifiChannelRow(f, country, channel,
+                                    (cn == len(countries) - 1 and ch == len(channels) - 1))
 
     f.write(sqlFooter)
 
@@ -249,9 +325,10 @@ INSERT INTO `wifi_countries` VALUES
 
 def buildWifiCountryRow(f, countryOid, country, last):
     countryLine = Template(
-        "$code, $dmn, '$iso', '$name'").substitute(country.attrib)
-    f.write("(%d, '%s', %s)%s\n" %
-            (countryOid, fosVersion, countryLine, ',' if not last else ';'))
+        "$code, $dmn, '$iso'").substitute(country.attrib)
+    countryName = country.attrib['name'].title()
+    f.write("(%d, '%s', %s, '%s')%s\n" %
+            (countryOid, fosVersion, countryLine, countryName, ',' if not last else ';'))
 
 
 def buildWifiCountriesSql():
@@ -264,8 +341,13 @@ def buildWifiCountriesSql():
 
     f.write(countrySqlHeader)
 
+    countryOid = 0
+
     for cn, country in enumerate(countries):
-        buildWifiCountryRow(f, cn + 1, country, (cn == len(countries) - 1))
+        if isCountryForAp(country.attrib['code']):
+            countryOid += 1
+            buildWifiCountryRow(f, countryOid, country,
+                                (cn == len(countries) - 1))
 
     f.write(sqlFooter)
 
