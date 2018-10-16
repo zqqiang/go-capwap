@@ -95,7 +95,6 @@ CREATE TABLE `wifi_platforms` (
 `captype` int(11) NOT NULL COMMENT 'platform.captype',
 `platformName` char(6) DEFAULT NULL COMMENT 'platform.name',
 `display` char(16) DEFAULT NULL COMMENT 'platform.help',
-`wtpName` char(6) DEFAULT NULL COMMENT 'wtpcap.name',
 `cap` int(11) NOT NULL COMMENT 'wtpcap.cap',
 `maxVaps` int(11) NOT NULL COMMENT 'wtpcap.max_vaps',
 `wanLan` int(11) NOT NULL COMMENT 'wtpcap.wan_lan',
@@ -116,7 +115,7 @@ def buildPlatformRowSql(f, platform, wtpcap, last):
         platform.attrib)
     help = platform.attrib["help"].rstrip(".")
     wtpcapLine = Template(
-        "'$name', $cap, $max_vaps, $wan_lan, $max_lan, $bint_min, $bint_max").substitute(wtpcap.attrib)
+        "$cap, $max_vaps, $wan_lan, $max_lan, $bint_min, $bint_max").substitute(wtpcap.attrib)
     f.write("(%s, '%s', %s)%s\n" %
             (platformLine, help, wtpcapLine, ',' if not last else ';'))
 
@@ -185,7 +184,6 @@ DROP TABLE IF EXISTS `wifi_bands`;
 
 CREATE TABLE `wifi_bands` (
   `oid` int(11) NOT NULL COMMENT 'band oid',
-  `fosVersion` char(8) NOT NULL COMMENT 'fos version',
   `name` char(16) DEFAULT NULL COMMENT 'band name',
   `help` char(32) DEFAULT NULL COMMENT 'band help',
   `bn` char(6) DEFAULT NULL COMMENT 'todo ?',
@@ -200,8 +198,8 @@ INSERT INTO `wifi_bands` VALUES
 
 def buildBandRowSql(f, index, band, last):
     bandLine = Template("'$name', '$help', '$bn'").substitute(band.attrib)
-    f.write("(%d, '%s', %s)%s\n" %
-            (index + 1, fosVersion, bandLine, ',' if not last else ';'))
+    f.write("(%d, %s)%s\n" %
+            (index + 1, bandLine, ',' if not last else ';'))
 
 
 def buildWifiBandSql():
@@ -225,12 +223,10 @@ CREATE TABLE `wifi_radios` (
   `radioId` int(3) DEFAULT NULL COMMENT 'radio id',
   `maxMcs11n` int(8) DEFAULT NULL COMMENT '',
   `maxMcs11ac` int(8) DEFAULT NULL COMMENT '',
-  `bandMask` char(64) DEFAULT NULL COMMENT '',
-  `bandMaskGui` char(64) DEFAULT NULL COMMENT '',
-  `bandDflt` char(64) DEFAULT NULL COMMENT '',
   `powMax2g` int(8) DEFAULT NULL COMMENT 'band 2g, auto tx power, tx power max dBm',
   `powMax5g` int(8) DEFAULT NULL COMMENT 'band 5g, auto tx power, tx power max dBm',
   `operMode` char(64) DEFAULT NULL COMMENT 'disable: Disabled, fg: Dedicated Monitor, ap: Access Point, apbg2: ?',
+  `bandDflt` char(64) DEFAULT NULL COMMENT '',
   PRIMARY KEY (`capType`, `radioId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -240,11 +236,18 @@ INSERT INTO `wifi_radios` VALUES
 """
 
 
+def getDefaultBand(defaultBand):
+    bands = root.findall('.//wl_band_type/wlband')
+    for b, band in enumerate(bands):
+        if band.attrib["bn"] == defaultBand:
+            return b + 1
+
+
 def buildRadioRowSql(f, capType, radio, last):
     radioLine = Template(
-        "$id, $max_mcs_11n, $max_mcs_11ac, '$band_mask', '$band_mask_gui', '$band_dflt', $pow_max_2g, $pow_max_5g, '$oper_mode'").substitute(radio.attrib)
-    f.write("(%s, %s)%s\n" %
-            (capType, radioLine, ',' if not last else ';'))
+        "$id, $max_mcs_11n, $max_mcs_11ac, $pow_max_2g, $pow_max_5g, '$oper_mode'").substitute(radio.attrib)
+    f.write("(%s, %s, %s)%s\n" %
+            (capType, radioLine, getDefaultBand(radio.attrib["band_dflt"]), ',' if not last else ';'))
 
 
 def buildWifiRadiosSql():
@@ -253,8 +256,6 @@ def buildWifiRadiosSql():
 
     f = open('wifi_radios.sql', 'w')
 
-    radioOid = 0
-
     f.write(radioSqlHeader)
 
     for i, platform in enumerate(platforms):
@@ -262,7 +263,6 @@ def buildWifiRadiosSql():
             if isCapTypeEqual(platform, wtpcap):
                 radios = list(wtpcap.iter('radio'))
                 for r, radio in enumerate(radios):
-                    radioOid += 1
                     buildRadioRowSql(f, platform.attrib["captype"], radio, (i == len(
                         platforms) - 1) and (r == len(radios) - 1))
 
@@ -290,7 +290,9 @@ def buildRadioBandRowSql(f, capType, radioId, bandOid, last):
 
 
 def isBandEqual(radio, band):
-    return (radio.attrib["band_mask"], band.attrib["bn"])
+    mask = radio.attrib["band_mask"].split(' ')
+    bn = band.attrib["bn"]
+    return bn in mask
 
 
 def buildWifiRadioBandSql():
