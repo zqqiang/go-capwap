@@ -221,7 +221,7 @@ radioSqlHeader = """
 DROP TABLE IF EXISTS `wifi_radios`;
 
 CREATE TABLE `wifi_radios` (
-  `platformOid` int(11) NOT NULL COMMENT 'platform oid',
+  `capType` int(11) NOT NULL COMMENT 'platform captype',
   `radioId` int(3) DEFAULT NULL COMMENT 'radio id',
   `maxMcs11n` int(8) DEFAULT NULL COMMENT '',
   `maxMcs11ac` int(8) DEFAULT NULL COMMENT '',
@@ -231,7 +231,7 @@ CREATE TABLE `wifi_radios` (
   `powMax2g` int(8) DEFAULT NULL COMMENT 'band 2g, auto tx power, tx power max dBm',
   `powMax5g` int(8) DEFAULT NULL COMMENT 'band 5g, auto tx power, tx power max dBm',
   `operMode` char(64) DEFAULT NULL COMMENT 'disable: Disabled, fg: Dedicated Monitor, ap: Access Point, apbg2: ?',
-  PRIMARY KEY (`platformOid`, `radioId`)
+  PRIMARY KEY (`capType`, `radioId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `wifi_radios` WRITE;
@@ -240,11 +240,11 @@ INSERT INTO `wifi_radios` VALUES
 """
 
 
-def buildRadioRowSql(f, platformOid, radio, last):
+def buildRadioRowSql(f, capType, radio, last):
     radioLine = Template(
         "$id, $max_mcs_11n, $max_mcs_11ac, '$band_mask', '$band_mask_gui', '$band_dflt', $pow_max_2g, $pow_max_5g, '$oper_mode'").substitute(radio.attrib)
-    f.write("(%d, %s)%s\n" %
-            (platformOid, radioLine, ',' if not last else ';'))
+    f.write("(%s, %s)%s\n" %
+            (capType, radioLine, ',' if not last else ';'))
 
 
 def buildWifiRadiosSql():
@@ -263,8 +263,56 @@ def buildWifiRadiosSql():
                 radios = list(wtpcap.iter('radio'))
                 for r, radio in enumerate(radios):
                     radioOid += 1
-                    buildRadioRowSql(
-                        f, i + 1, radio, (i == len(platforms) - 1) and (r == len(radios) - 1))
+                    buildRadioRowSql(f, platform.attrib["captype"], radio, (i == len(
+                        platforms) - 1) and (r == len(radios) - 1))
+
+    f.write(sqlFooter)
+
+
+radioBandSqlHeader = """
+DROP TABLE IF EXISTS `wifi_radio_band`;
+
+CREATE TABLE `wifi_radio_band` (
+  `capType` int(11) NOT NULL COMMENT 'platform captype',
+  `radioId` int(3) DEFAULT NULL COMMENT 'radio id',
+  `bandOid` int(11) NOT NULL COMMENT 'band oid'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+LOCK TABLES `wifi_radio_band` WRITE;
+
+INSERT INTO `wifi_radio_band` VALUES 
+"""
+
+
+def buildRadioBandRowSql(f, capType, radioId, bandOid, last):
+    f.write("(%s, %s, %s)%s\n" %
+            (capType, radioId, bandOid, ',' if not last else ';'))
+
+
+def isBandEqual(radio, band):
+    return (radio.attrib["band_mask"], band.attrib["bn"])
+
+
+def buildWifiRadioBandSql():
+    platforms = root.findall('.//cw_platform_type/platform')
+    wtpcaps = root.findall('.//cw_wtp_cap/wtpcap')
+    bands = root.findall('.//wl_band_type/wlband')
+
+    f = open('wifi_radio_band.sql', 'w')
+
+    f.write(radioBandSqlHeader)
+
+    for p, platform in enumerate(platforms):
+        for wtpcap in wtpcaps:
+            if isCapTypeEqual(platform, wtpcap):
+                radios = list(wtpcap.iter('radio'))
+                for r, radio in enumerate(radios):
+                    for b, band in enumerate(bands):
+                        if isBandEqual(radio, band):
+                            last = (p == len(platforms) - 1) and (r ==
+                                                                  len(radios) - 1) and (b == len(bands) - 1)
+                            buildRadioBandRowSql(
+                                f, platform.attrib["captype"], radio.attrib["id"], b + 1, last)
 
     f.write(sqlFooter)
 
@@ -423,7 +471,7 @@ def runSql(host, username, password, database):
     cursor = conn.cursor()
 
     scripts = ['wifi_bands.sql', 'wifi_countries.sql', 'wifi_fos_countries.sql', 'wifi_radios.sql',
-               'wifi_platforms.sql', 'wifi_fos_platforms.sql', 'wifi_channels.sql']
+               'wifi_platforms.sql', 'wifi_fos_platforms.sql', 'wifi_channels.sql', 'wifi_radio_band.sql']
 
     for script in scripts:
         f = open(script, "r")
@@ -468,6 +516,7 @@ def main():
     buildWifiCountriesSql()
     buildWifiBandSql()
     buildWifiRadiosSql()
+    buildWifiRadioBandSql()
     buildWifiPlatformSql()
     buildWifiFosPlatformSql()
     buildWifiChannelsSql()
