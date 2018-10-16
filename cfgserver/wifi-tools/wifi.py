@@ -83,12 +83,15 @@ def isCountryForAp(countryCode):
     return countryCode not in countryNotForAp
 
 
+sqlFooter = """
+UNLOCK TABLE;
+"""
+
+
 platformSqlHeader = """
 DROP TABLE IF EXISTS `wifi_platforms`;
 
 CREATE TABLE `wifi_platforms` (
-`oid` int(11) NOT NULL COMMENT 'platform oid',
-`fosVersion` char(8) NOT NULL COMMENT 'fos version',
 `captype` int(11) NOT NULL COMMENT 'platform.captype',
 `platformName` char(6) DEFAULT NULL COMMENT 'platform.name',
 `display` char(16) DEFAULT NULL COMMENT 'platform.help',
@@ -99,7 +102,7 @@ CREATE TABLE `wifi_platforms` (
 `maxLan` int(11) NOT NULL COMMENT 'wtpcap.max_lan: max lan port number',
 `bintMin` int(11) NOT NULL COMMENT 'wtpcap.bint_min: min beacon interval',
 `bintMax` int(11) NOT NULL COMMENT 'wtpcap.bint_max: max beacon interval',
-PRIMARY KEY (`oid`)
+PRIMARY KEY (`captype`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `wifi_platforms` WRITE;
@@ -107,18 +110,14 @@ LOCK TABLES `wifi_platforms` WRITE;
 INSERT INTO `wifi_platforms` VALUES 
 """
 
-sqlFooter = """
-UNLOCK TABLE;
-"""
 
-
-def buildPlatformRowSql(f, index, platform, wtpcap, last):
+def buildPlatformRowSql(f, platform, wtpcap, last):
     platformLine = Template("$captype,'$name', '$help',").substitute(
         platform.attrib)
     wtpcapLine = Template(
         "'$name', $cap, $max_vaps, $wan_lan, $max_lan, $bint_min, $bint_max").substitute(wtpcap.attrib)
-    f.write("(%d, '%s', %s %s)%s\n" %
-            (index + 1, fosVersion, platformLine, wtpcapLine, ',' if not last else ';'))
+    f.write("(%s %s)%s\n" %
+            (platformLine, wtpcapLine, ',' if not last else ';'))
 
 
 def isCapTypeEqual(platform, wtpcap):
@@ -136,13 +135,49 @@ def buildWifiPlatformSql():
     for i, platform in enumerate(platforms):
         for wtpcap in wtpcaps:
             if isCapTypeEqual(platform, wtpcap):
-                buildPlatformRowSql(f, i, platform, wtpcap,
+                buildPlatformRowSql(f, platform, wtpcap,
                                     i == len(platforms) - 1)
 
     f.write(sqlFooter)
 
 
-buildWifiPlatformSql()
+fosPlatformSqlHeader = """
+DROP TABLE IF EXISTS `wifi_fos_platforms`;
+
+CREATE TABLE `wifi_fos_platforms` (
+`fosVersion` char(8) NOT NULL COMMENT 'fos version',
+`captype` int(11) NOT NULL COMMENT 'platform.captype'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+LOCK TABLES `wifi_fos_platforms` WRITE;
+
+INSERT INTO `wifi_fos_platforms` VALUES 
+"""
+
+
+def buildFosPlatformRowSql(f, index, platform, wtpcap, last):
+    platformLine = Template("$captype").substitute(
+        platform.attrib)
+    f.write("('%s', %s)%s\n" %
+            (fosVersion, platformLine, ',' if not last else ';'))
+
+
+def buildWifiFosPlatformSql():
+    platforms = root.findall('.//cw_platform_type/platform')
+    wtpcaps = root.findall('.//cw_wtp_cap/wtpcap')
+
+    f = open('wifi_fos_platforms.sql', 'w')
+
+    f.write(fosPlatformSqlHeader)
+
+    for i, platform in enumerate(platforms):
+        for wtpcap in wtpcaps:
+            if isCapTypeEqual(platform, wtpcap):
+                buildFosPlatformRowSql(f, i, platform, wtpcap,
+                                       i == len(platforms) - 1)
+
+    f.write(sqlFooter)
+
 
 bandSqlHeader = """
 DROP TABLE IF EXISTS `wifi_bands`;
@@ -180,8 +215,6 @@ def buildWifiBandSql():
 
     f.write(sqlFooter)
 
-
-buildWifiBandSql()
 
 radioSqlHeader = """
 DROP TABLE IF EXISTS `wifi_radios`;
@@ -235,9 +268,6 @@ def buildWifiRadiosSql():
                         f, radioOid, i + 1, radio, (i == len(platforms) - 1) and (r == len(radios) - 1))
 
     f.write(sqlFooter)
-
-
-buildWifiRadiosSql()
 
 
 channelSqlHeader = """
@@ -304,18 +334,15 @@ def buildWifiChannelsSql():
     f.write(sqlFooter)
 
 
-buildWifiChannelsSql()
-
-
 countrySqlHeader = """
 DROP TABLE IF EXISTS `wifi_countries`;
 
 CREATE TABLE `wifi_countries` (
+  `iso` char(8) NOT NULL COMMENT 'country iso name',
   `code` int(11) NOT NULL COMMENT 'country code',
   `dmn` int(11) NOT NULL COMMENT 'country dmn ?',
-  `iso` char(8) NOT NULL COMMENT 'country iso name',
   `name` char(64) NOT NULL COMMENT 'country name',
-  PRIMARY KEY (`code`)
+  PRIMARY KEY (`iso`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `wifi_countries` WRITE;
@@ -326,7 +353,7 @@ INSERT INTO `wifi_countries` VALUES
 
 def buildWifiCountryRow(f, country, last):
     countryLine = Template(
-        "$code, $dmn, '$iso'").substitute(country.attrib)
+        "'$iso', $code, $dmn").substitute(country.attrib)
     countryName = country.attrib['name'].title()
     f.write("(%s, '%s')%s\n" %
             (countryLine, countryName, ',' if not last else ';'))
@@ -349,15 +376,12 @@ def buildWifiCountriesSql():
     f.write(sqlFooter)
 
 
-buildWifiCountriesSql()
-
-
 fosCountrySqlHeader = """
 DROP TABLE IF EXISTS `wifi_fos_countries`;
 
 CREATE TABLE `wifi_fos_countries` (
   `fosVersion` char(8) NOT NULL COMMENT 'fos version',
-  `code` int(11) NOT NULL COMMENT 'country code'
+  `iso` char(8) NOT NULL COMMENT 'country iso name'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `wifi_fos_countries` WRITE;
@@ -367,7 +391,7 @@ INSERT INTO `wifi_fos_countries` VALUES
 
 
 def buildWifiFosCountryRow(f, fosVersion, country, last):
-    countryLine = Template("$code").substitute(country.attrib)
+    countryLine = Template("'$iso'").substitute(country.attrib)
     f.write("('%s', %s)%s\n" %
             (fosVersion, countryLine, ',' if not last else ';'))
 
@@ -390,9 +414,6 @@ def buildWifiFosCountriesSql():
     f.write(sqlFooter)
 
 
-buildWifiFosCountriesSql()
-
-
 def runSql(host, username, password, database):
     conn = mysql.connector.connect(
         host=host,
@@ -403,7 +424,7 @@ def runSql(host, username, password, database):
     cursor = conn.cursor()
 
     scripts = ['wifi_bands.sql', 'wifi_countries.sql', 'wifi_fos_countries.sql',
-               'wifi_radios.sql', 'wifi_platforms.sql', 'wifi_channels.sql']
+               'wifi_radios.sql', 'wifi_platforms.sql', 'wifi_fos_platforms.sql', 'wifi_channels.sql']
 
     for script in scripts:
         f = open(script, "r")
@@ -443,6 +464,13 @@ def main():
         elif opt in ("-d", "--database"):
             database = arg
 
+    buildWifiFosCountriesSql()
+    buildWifiCountriesSql()
+    buildWifiBandSql()
+    buildWifiRadiosSql()
+    buildWifiPlatformSql()
+    buildWifiFosPlatformSql()
+    buildWifiChannelsSql()
     runSql(host, username, password, database)
 
 
