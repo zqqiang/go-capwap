@@ -1,10 +1,13 @@
-import xml.etree.ElementTree as ET
+import sys
+import getopt
 from string import Template
+import mysql.connector
+import xml.etree.ElementTree as ET
 
 tree = ET.parse('mgmt-data.xml')
 root = tree.getroot()
 
-fosVersion = '600'
+fosVersion = '6.0.0'
 
 countryNotForAp = [
     "511",     # Debug
@@ -308,13 +311,11 @@ countrySqlHeader = """
 DROP TABLE IF EXISTS `wifi_countries`;
 
 CREATE TABLE `wifi_countries` (
-  `oid` int(11) NOT NULL COMMENT 'country oid',
-  `fosVersion` char(8) NOT NULL COMMENT 'fos version',
   `code` int(11) NOT NULL COMMENT 'country code',
   `dmn` int(11) NOT NULL COMMENT 'country dmn ?',
   `iso` char(8) NOT NULL COMMENT 'country iso name',
   `name` char(64) NOT NULL COMMENT 'country name',
-  PRIMARY KEY (`oid`)
+  PRIMARY KEY (`code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `wifi_countries` WRITE;
@@ -323,12 +324,12 @@ INSERT INTO `wifi_countries` VALUES
 """
 
 
-def buildWifiCountryRow(f, countryOid, country, last):
+def buildWifiCountryRow(f, country, last):
     countryLine = Template(
         "$code, $dmn, '$iso'").substitute(country.attrib)
     countryName = country.attrib['name'].title()
-    f.write("(%d, '%s', %s, '%s')%s\n" %
-            (countryOid, fosVersion, countryLine, countryName, ',' if not last else ';'))
+    f.write("(%s, '%s')%s\n" %
+            (countryLine, countryName, ',' if not last else ';'))
 
 
 def buildWifiCountriesSql():
@@ -341,15 +342,109 @@ def buildWifiCountriesSql():
 
     f.write(countrySqlHeader)
 
-    countryOid = 0
-
     for cn, country in enumerate(countries):
         if isCountryForAp(country.attrib['code']):
-            countryOid += 1
-            buildWifiCountryRow(f, countryOid, country,
-                                (cn == len(countries) - 1))
+            buildWifiCountryRow(f, country, (cn == len(countries) - 1))
 
     f.write(sqlFooter)
 
 
 buildWifiCountriesSql()
+
+
+fosCountrySqlHeader = """
+DROP TABLE IF EXISTS `wifi_fos_countries`;
+
+CREATE TABLE `wifi_fos_countries` (
+  `fosVersion` char(8) NOT NULL COMMENT 'fos version',
+  `code` int(11) NOT NULL COMMENT 'country code'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+LOCK TABLES `wifi_fos_countries` WRITE;
+
+INSERT INTO `wifi_fos_countries` VALUES 
+"""
+
+
+def buildWifiFosCountryRow(f, fosVersion, country, last):
+    countryLine = Template("$code").substitute(country.attrib)
+    f.write("('%s', %s)%s\n" %
+            (fosVersion, countryLine, ',' if not last else ';'))
+
+
+def buildWifiFosCountriesSql():
+    ctree = ET.parse('chanlist.xml')
+    croot = ctree.getroot()
+
+    countries = croot.findall('.//country')
+
+    f = open('wifi_fos_countries.sql', 'w')
+
+    f.write(fosCountrySqlHeader)
+
+    for cn, country in enumerate(countries):
+        if isCountryForAp(country.attrib['code']):
+            buildWifiFosCountryRow(f, fosVersion, country,
+                                   (cn == len(countries) - 1))
+
+    f.write(sqlFooter)
+
+
+buildWifiFosCountriesSql()
+
+
+def runSql(host, username, password, database):
+    conn = mysql.connector.connect(
+        host=host,
+        user=username,
+        passwd=password,
+        database=database
+    )
+    cursor = conn.cursor()
+
+    scripts = ['wifi_bands.sql', 'wifi_countries.sql', 'wifi_fos_countries.sql',
+               'wifi_radios.sql', 'wifi_platforms.sql', 'wifi_channels.sql']
+
+    for script in scripts:
+        f = open(script, "r")
+        sql = f.read()
+        cmds = sql.replace("\n", "").split(";")
+
+        for cmd in cmds:
+            cursor.execute(cmd)
+
+    conn.close()
+
+
+def usage():
+    print('wifi.py -h <host> -u <username> -p <password> -d <database>')
+
+
+def main():
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "h:u:p:d:", [
+                                   "host=", "username=", "password=", "database="])
+    except getopt.GetoptError as err:
+        print(err)
+        usage()
+        sys.exit(2)
+
+    host = ""
+    username = ""
+    password = ""
+    database = ""
+    for opt, arg in opts:
+        if opt in ("-h", "--host"):
+            host = arg
+        elif opt in ("-u", "--username"):
+            username = arg
+        elif opt in ("-p", "--password"):
+            password = arg
+        elif opt in ("-d", "--database"):
+            database = arg
+
+    runSql(host, username, password, database)
+
+
+if __name__ == "__main__":
+    main()
