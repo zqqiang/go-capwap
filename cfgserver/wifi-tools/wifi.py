@@ -112,12 +112,13 @@ INSERT INTO `wifi_platforms` VALUES
 
 
 def buildPlatformRowSql(f, platform, wtpcap, last):
-    platformLine = Template("$captype,'$name', '$help',").substitute(
+    platformLine = Template("$captype,'$name'").substitute(
         platform.attrib)
+    help = platform.attrib["help"].rstrip(".")
     wtpcapLine = Template(
         "'$name', $cap, $max_vaps, $wan_lan, $max_lan, $bint_min, $bint_max").substitute(wtpcap.attrib)
-    f.write("(%s %s)%s\n" %
-            (platformLine, wtpcapLine, ',' if not last else ';'))
+    f.write("(%s, '%s', %s)%s\n" %
+            (platformLine, help, wtpcapLine, ',' if not last else ';'))
 
 
 def isCapTypeEqual(platform, wtpcap):
@@ -454,6 +455,7 @@ def main():
     username = ""
     password = ""
     database = ""
+
     for opt, arg in opts:
         if opt in ("-h", "--host"):
             host = arg
@@ -471,6 +473,7 @@ def main():
     buildWifiPlatformSql()
     buildWifiFosPlatformSql()
     buildWifiChannelsSql()
+
     runSql(host, username, password, database)
 
 
