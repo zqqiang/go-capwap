@@ -222,7 +222,6 @@ DROP TABLE IF EXISTS `wifi_radios`;
 
 CREATE TABLE `wifi_radios` (
   `oid` int(11) NOT NULL COMMENT 'radio oid',
-  `fosVersion` char(8) NOT NULL COMMENT 'fos version',
   `platformOid` int(11) NOT NULL COMMENT 'platform oid',
   `radioId` int(3) DEFAULT NULL COMMENT 'radio id',
   `maxMcs11n` int(8) DEFAULT NULL COMMENT '',
@@ -245,8 +244,8 @@ INSERT INTO `wifi_radios` VALUES
 def buildRadioRowSql(f, radioOid, platformOid, radio, last):
     radioLine = Template(
         "$id, $max_mcs_11n, $max_mcs_11ac, '$band_mask', '$band_mask_gui', '$band_dflt', $pow_max_2g, $pow_max_5g, '$oper_mode'").substitute(radio.attrib)
-    f.write("(%d, '%s', %d, %s)%s\n" %
-            (radioOid, fosVersion, platformOid, radioLine, ',' if not last else ';'))
+    f.write("(%d, %d, %s)%s\n" %
+            (radioOid, platformOid, radioLine, ',' if not last else ';'))
 
 
 def buildWifiRadiosSql():
@@ -267,6 +266,47 @@ def buildWifiRadiosSql():
                     radioOid += 1
                     buildRadioRowSql(
                         f, radioOid, i + 1, radio, (i == len(platforms) - 1) and (r == len(radios) - 1))
+
+    f.write(sqlFooter)
+
+
+fosRadioSqlHeader = """
+DROP TABLE IF EXISTS `wifi_fos_radios`;
+
+CREATE TABLE `wifi_fos_radios` (
+  `fosVersion` char(8) NOT NULL COMMENT 'fos version',
+  `radioOid` int(11) NOT NULL COMMENT 'radio oid'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+LOCK TABLES `wifi_fos_radios` WRITE;
+
+INSERT INTO `wifi_fos_radios` VALUES 
+"""
+
+
+def buildFosRadioRowSql(f, radioOid, last):
+    f.write("('%s', %d)%s\n" %
+            (fosVersion, radioOid, ',' if not last else ';'))
+
+
+def buildWifiFosRadiosSql():
+    platforms = root.findall('.//cw_platform_type/platform')
+    wtpcaps = root.findall('.//cw_wtp_cap/wtpcap')
+
+    f = open('wifi_fos_radios.sql', 'w')
+
+    radioOid = 0
+
+    f.write(fosRadioSqlHeader)
+
+    for i, platform in enumerate(platforms):
+        for wtpcap in wtpcaps:
+            if isCapTypeEqual(platform, wtpcap):
+                radios = list(wtpcap.iter('radio'))
+                for r, radio in enumerate(radios):
+                    radioOid += 1
+                    buildFosRadioRowSql(
+                        f, radioOid, (i == len(platforms) - 1) and (r == len(radios) - 1))
 
     f.write(sqlFooter)
 
@@ -424,8 +464,8 @@ def runSql(host, username, password, database):
     )
     cursor = conn.cursor()
 
-    scripts = ['wifi_bands.sql', 'wifi_countries.sql', 'wifi_fos_countries.sql',
-               'wifi_radios.sql', 'wifi_platforms.sql', 'wifi_fos_platforms.sql', 'wifi_channels.sql']
+    scripts = ['wifi_bands.sql', 'wifi_countries.sql', 'wifi_fos_countries.sql', 'wifi_radios.sql',
+               'wifi_fos_radios.sql', 'wifi_platforms.sql', 'wifi_fos_platforms.sql', 'wifi_channels.sql']
 
     for script in scripts:
         f = open(script, "r")
@@ -470,6 +510,7 @@ def main():
     buildWifiCountriesSql()
     buildWifiBandSql()
     buildWifiRadiosSql()
+    buildWifiFosRadiosSql()
     buildWifiPlatformSql()
     buildWifiFosPlatformSql()
     buildWifiChannelsSql()
