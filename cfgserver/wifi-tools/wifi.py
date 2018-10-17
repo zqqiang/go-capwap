@@ -1,8 +1,11 @@
 import sys
 import getopt
+import os
+from os.path import join
 from string import Template
 import mysql.connector
 import xml.etree.ElementTree as ET
+from xml.parsers.expat import ExpatError, errors
 
 tree = ET.parse('mgmt-data.xml')
 root = tree.getroot()
@@ -106,7 +109,7 @@ PRIMARY KEY (`captype`)
 
 LOCK TABLES `wifi_platforms` WRITE;
 
-INSERT INTO `wifi_platforms` VALUES 
+INSERT INTO `wifi_platforms` VALUES
 """
 
 
@@ -151,7 +154,7 @@ CREATE TABLE `wifi_fos_platforms` (
 
 LOCK TABLES `wifi_fos_platforms` WRITE;
 
-INSERT INTO `wifi_fos_platforms` VALUES 
+INSERT INTO `wifi_fos_platforms` VALUES
 """
 
 
@@ -192,7 +195,7 @@ CREATE TABLE `wifi_bands` (
 
 LOCK TABLES `wifi_bands` WRITE;
 
-INSERT INTO `wifi_bands` VALUES 
+INSERT INTO `wifi_bands` VALUES
 """
 
 
@@ -232,7 +235,7 @@ CREATE TABLE `wifi_radios` (
 
 LOCK TABLES `wifi_radios` WRITE;
 
-INSERT INTO `wifi_radios` VALUES 
+INSERT INTO `wifi_radios` VALUES
 """
 
 
@@ -280,7 +283,7 @@ CREATE TABLE `wifi_radio_band` (
 
 LOCK TABLES `wifi_radio_band` WRITE;
 
-INSERT INTO `wifi_radio_band` VALUES 
+INSERT INTO `wifi_radio_band` VALUES
 """
 
 
@@ -334,7 +337,7 @@ CREATE TABLE `wifi_channels` (
 
 LOCK TABLES `wifi_channels` WRITE;
 
-INSERT INTO `wifi_channels` VALUES 
+INSERT INTO `wifi_channels` VALUES
 """
 
 
@@ -396,7 +399,7 @@ CREATE TABLE `wifi_countries` (
 
 LOCK TABLES `wifi_countries` WRITE;
 
-INSERT INTO `wifi_countries` VALUES 
+INSERT INTO `wifi_countries` VALUES
 """
 
 
@@ -435,7 +438,7 @@ CREATE TABLE `wifi_fos_countries` (
 
 LOCK TABLES `wifi_fos_countries` WRITE;
 
-INSERT INTO `wifi_fos_countries` VALUES 
+INSERT INTO `wifi_fos_countries` VALUES
 """
 
 
@@ -486,6 +489,34 @@ def runSql(host, username, password, database):
     conn.close()
 
 
+def testDiff():
+    path = "D:\\Workspaces\\svn\\fos_mgmt_data"
+    for folder, dirs, files in os.walk(path):
+        if '.svn' in folder:
+            continue
+        if not dirs and files:
+            f = files[0]
+
+            tree = ET.parse(join(folder, f))
+            root = tree.getroot()
+
+            try:
+                wtp = root.find(".//wireless-controller.wtp")
+            except ExpatError as err:
+                print("Error:", err.code)
+                return
+
+            out = "{0}\\out\\{1}".format(path, f)
+
+            cf = open(out, 'w')
+            if wtp:
+                cf.write(wtp.tostring())
+            else:
+                print("wtp: {0} in {1}".format(wtp, folder))
+
+            print("=> {0}".format(out))
+
+
 def usage():
     print('wifi.py -h <host> -u <username> -p <password> -d <database>')
 
@@ -493,7 +524,7 @@ def usage():
 def main():
     try:
         opts, args = getopt.getopt(sys.argv[1:], "h:u:p:d:", [
-                                   "host=", "username=", "password=", "database="])
+            "host=", "username=", "password=", "database="])
     except getopt.GetoptError as err:
         print(err)
         usage()
@@ -514,16 +545,18 @@ def main():
         elif opt in ("-d", "--database"):
             database = arg
 
-    buildWifiFosCountriesSql()
-    buildWifiCountriesSql()
-    buildWifiBandSql()
-    buildWifiRadiosSql()
-    buildWifiRadioBandSql()
-    buildWifiPlatformSql()
-    buildWifiFosPlatformSql()
-    buildWifiChannelsSql()
+    # buildWifiFosCountriesSql()
+    # buildWifiCountriesSql()
+    # buildWifiBandSql()
+    # buildWifiRadiosSql()
+    # buildWifiRadioBandSql()
+    # buildWifiPlatformSql()
+    # buildWifiFosPlatformSql()
+    # buildWifiChannelsSql()
 
-    runSql(host, username, password, database)
+    testDiff()
+
+    # runSql(host, username, password, database)
 
 
 if __name__ == "__main__":
