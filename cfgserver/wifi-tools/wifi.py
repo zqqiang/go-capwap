@@ -7,10 +7,10 @@ import mysql.connector
 import xml.etree.ElementTree as ET
 from xml.parsers.expat import ExpatError, errors
 
-tree = ET.parse('mgmt-data.xml')
-root = tree.getroot()
+# tree = ET.parse('mgmt-data.xml')
+# root = tree.getroot()
 
-fosVersion = '6.0.0'
+# fosVersion = '6.0.0'
 
 countryNotForAp = [
     "511",     # Debug
@@ -205,10 +205,10 @@ def buildBandRowSql(f, index, band, last):
             (index + 1, bandLine, ',' if not last else ';'))
 
 
-def buildWifiBandSql():
+def buildWifiBandSql(root):
     bands = root.findall('.//wl_band_type/wlband')
 
-    f = open('wifi_bands.sql', 'w')
+    f = open("wifi_bands.sql", 'w')
 
     f.write(bandSqlHeader)
 
@@ -216,6 +216,8 @@ def buildWifiBandSql():
         buildBandRowSql(f, i, band, i == len(bands) - 1)
 
     f.write(sqlFooter)
+
+    return bands
 
 
 radioSqlHeader = """
@@ -433,29 +435,36 @@ INSERT INTO `wifi_countries` VALUES
 """
 
 
-def buildWifiCountryRow(f, country, last):
+def isCountryExist(country, countries):
+    return country in countries['rows']
+
+
+def buildWifiCountryRow(f, countryOid, country, last):
     countryLine = Template(
         "'$iso', $code, $dmn").substitute(country.attrib)
     countryName = country.attrib['name'].title()
-    f.write("(%s, '%s')%s\n" %
-            (countryLine, countryName, ',' if not last else ';'))
+    f.write("(%d, %s, '%s')%s\n" %
+            (countryOid, countryLine, countryName, ',' if not last else ';'))
+    if last:
+        f.write(sqlFooter)
 
 
-def buildWifiCountriesSql():
-    ctree = ET.parse('chanlist.xml')
-    croot = ctree.getroot()
+def buildWifiCountriesSql(croot, version, countries):
+    cs = croot.findall('.//country')
 
-    countries = croot.findall('.//country')
+    if 0 == countries['oid']:
+        f = open('wifi_countries.sql', 'w')
+        f.write(countrySqlHeader)
+    else:
+        f = open('wifi_countries.sql', 'a')
 
-    f = open('wifi_countries.sql', 'w')
-
-    f.write(countrySqlHeader)
-
-    for cn, country in enumerate(countries):
+    for cn, country in enumerate(cs):
         if isCountryForAp(country.attrib['code']):
-            buildWifiCountryRow(f, country, (cn == len(countries) - 1))
-
-    f.write(sqlFooter)
+            if not isCountryExist(country, countries):
+                countries['oid'] += 1
+                countries['rows'].append(country)
+                buildWifiCountryRow(
+                    f, countries['oid'], country, (cn == len(cs) - 1))
 
 
 fosCountrySqlHeader = """
@@ -519,32 +528,38 @@ def runSql(host, username, password, database):
     conn.close()
 
 
-def testDiff():
+def extractChanListXml(root, version):
+    countries = root.findall('.//file[@name="wlchanlist.txt"]')
+    country = countries[0]
+
+    f = open('chanlist_{0}.xml'.format(version), 'w')
+    f.write(country.text.strip())
+
+    tree = ET.parse('chanlist_{0}.xml'.format(version))
+    croot = tree.getroot()
+    return croot
+
+
+def run():
     path = "D:\\Workspaces\\svn\\fos_mgmt_data"
+    bands = None
+    countries = {'oid': 0, 'rows': []}
+
     for folder, dirs, files in os.walk(path):
         if '.svn' in folder:
             continue
         if not dirs and files:
-            f = files[0]
-
-            tree = ET.parse(join(folder, f))
+            version = folder.split('\\')[-1]
+            tree = ET.parse(join(folder, files[0]))
             root = tree.getroot()
 
-            try:
-                wtp = root.find(".//wireless-controller.wtp")
-            except ExpatError as err:
-                print("Error:", err.code)
-                return
+            if not bands:
+                bands = buildWifiBandSql(root)
 
-            out = "{0}\\out\\{1}".format(path, f)
+            croot = extractChanListXml(root, version)
+            buildWifiCountriesSql(croot, version, countries)
 
-            cf = open(out, 'w')
-            if wtp:
-                cf.write(wtp.tostring())
-            else:
-                print("wtp: {0} in {1}".format(wtp, folder))
-
-            print("=> {0}".format(out))
+    print(countries['oid'])
 
 
 def usage():
@@ -575,18 +590,16 @@ def main():
         elif opt in ("-d", "--database"):
             database = arg
 
-    buildWifiChannelsSql()
-    buildWifiFosCountriesSql()
-    buildWifiCountriesSql()
-    buildWifiBandSql()
-    buildWifiRadiosSql()
-    buildWifiRadioBandSql()
-    buildWifiPlatformSql()
-    buildWifiFosPlatformSql()
+    run()
 
-    # testDiff()
+    # buildWifiChannelsSql()
+    # buildWifiFosCountriesSql()
+    # buildWifiRadiosSql()
+    # buildWifiRadioBandSql()
+    # buildWifiPlatformSql()
+    # buildWifiFosPlatformSql()
 
-    runSql(host, username, password, database)
+    # runSql(host, username, password, database)
 
 
 if __name__ == "__main__":
