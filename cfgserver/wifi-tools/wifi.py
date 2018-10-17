@@ -86,7 +86,8 @@ def isCountryForAp(countryCode):
     return countryCode not in countryNotForAp
 
 
-sqlFooter = """
+sqlFooter = """;
+
 UNLOCK TABLE;
 """
 
@@ -436,17 +437,21 @@ INSERT INTO `wifi_countries` VALUES
 
 
 def isCountryExist(country, countries):
-    return country in countries['rows']
+    for c in countries['rows']:
+        if country.attrib['iso'] == c.attrib["iso"]:
+            for k, v in country.items():
+                if c.attrib[k] == v:
+                    continue
+            return True
+    return False
 
 
-def buildWifiCountryRow(f, countryOid, country, last):
+def buildWifiCountryRow(f, countryOid, country):
     countryLine = Template(
         "'$iso', $code, $dmn").substitute(country.attrib)
     countryName = country.attrib['name'].title()
-    f.write("(%d, %s, '%s')%s\n" %
-            (countryOid, countryLine, countryName, ',' if not last else ';'))
-    if last:
-        f.write(sqlFooter)
+    f.write("%s\n(%d, %s, '%s')" %
+            ('' if (1 == countryOid) else ',', countryOid, countryLine, countryName))
 
 
 def buildWifiCountriesSql(croot, version, countries):
@@ -463,8 +468,7 @@ def buildWifiCountriesSql(croot, version, countries):
             if not isCountryExist(country, countries):
                 countries['oid'] += 1
                 countries['rows'].append(country)
-                buildWifiCountryRow(
-                    f, countries['oid'], country, (cn == len(cs) - 1))
+                buildWifiCountryRow(f, countries['oid'], country)
 
 
 fosCountrySqlHeader = """
@@ -559,7 +563,8 @@ def run():
             croot = extractChanListXml(root, version)
             buildWifiCountriesSql(croot, version, countries)
 
-    print(countries['oid'])
+    f = open('wifi_countries.sql', 'a')
+    f.write(sqlFooter)
 
 
 def usage():
