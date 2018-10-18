@@ -423,11 +423,12 @@ countrySqlHeader = """
 DROP TABLE IF EXISTS `wifi_countries`;
 
 CREATE TABLE `wifi_countries` (
+  `oid` int(11) NOT NULL COMMENT 'country oid',
   `iso` char(8) NOT NULL COMMENT 'country iso name',
   `code` int(11) NOT NULL COMMENT 'country code',
   `dmn` int(11) NOT NULL COMMENT 'country dmn ?',
   `name` char(64) NOT NULL COMMENT 'country name',
-  PRIMARY KEY (`iso`)
+  PRIMARY KEY (`oid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `wifi_countries` WRITE;
@@ -443,12 +444,12 @@ def isSameDictionary(left, right):
     return True
 
 
-def isCountryExist(country, countries):
-    for c in countries['rows']:
+def getCountryOid(country, countries):
+    for oid, c in enumerate(countries['rows']):
         if country.attrib['iso'] == c.attrib["iso"]:
             if isSameDictionary(c, country):
-                return True
-    return False
+                return oid + 1
+    return 0
 
 
 def buildWifiCountryRow(f, countryOid, country):
@@ -459,29 +460,12 @@ def buildWifiCountryRow(f, countryOid, country):
             ('' if (1 == countryOid) else ',', countryOid, countryLine, countryName))
 
 
-def buildWifiCountriesSql(croot, version, countries):
-    cs = croot.findall('.//country')
-
-    if 0 == countries['oid']:
-        f = open('wifi_countries.sql', 'w')
-        f.write(countrySqlHeader)
-    else:
-        f = open('wifi_countries.sql', 'a')
-
-    for cn, country in enumerate(cs):
-        if isCountryForAp(country.attrib['code']):
-            if not isCountryExist(country, countries):
-                countries['oid'] += 1
-                countries['rows'].append(country)
-                buildWifiCountryRow(f, countries['oid'], country)
-
-
 fosCountrySqlHeader = """
 DROP TABLE IF EXISTS `wifi_fos_countries`;
 
 CREATE TABLE `wifi_fos_countries` (
   `fosVersion` char(8) NOT NULL COMMENT 'fos version',
-  `iso` char(8) NOT NULL COMMENT 'country iso name'
+  `oid` int(11) NOT NULL COMMENT 'country oid'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `wifi_fos_countries` WRITE;
@@ -490,28 +474,33 @@ INSERT INTO `wifi_fos_countries` VALUES
 """
 
 
-def buildWifiFosCountryRow(f, fosVersion, country, last):
-    countryLine = Template("'$iso'").substitute(country.attrib)
-    f.write("('%s', %s)%s\n" %
-            (fosVersion, countryLine, ',' if not last else ';'))
+def buildWifiFosCountryRow(f, fosVersion, countryOid, fosCountries):
+    fosCountries['oid'] += 1
+    f.write("%s\n('%s', %s)" %
+            ('' if 1 == fosCountries['oid'] else ',', fosVersion, countryOid))
 
 
-def buildWifiFosCountriesSql():
-    ctree = ET.parse('chanlist.xml')
-    croot = ctree.getroot()
+def buildWifiCountrySql(croot, version, countries, fosCountries):
+    cs = croot.findall('.//country')
 
-    countries = croot.findall('.//country')
+    if 0 == countries['oid']:
+        f = open('wifi_countries.sql', 'w')
+        f.write(countrySqlHeader)
+        fo = open('wifi_fos_countries.sql', 'w')
+        fo.write(fosCountrySqlHeader)
+    else:
+        f = open('wifi_countries.sql', 'a')
+        fo = open('wifi_fos_countries.sql', 'a')
 
-    f = open('wifi_fos_countries.sql', 'w')
-
-    f.write(fosCountrySqlHeader)
-
-    for cn, country in enumerate(countries):
+    for country in cs:
         if isCountryForAp(country.attrib['code']):
-            buildWifiFosCountryRow(f, fosVersion, country,
-                                   (cn == len(countries) - 1))
-
-    f.write(sqlFooter)
+            oid = getCountryOid(country, countries)
+            if 0 == oid:
+                countries['oid'] += 1
+                countries['rows'].append(country)
+                oid = countries['oid']
+                buildWifiCountryRow(f, oid, country)
+            buildWifiFosCountryRow(fo, version, oid, fosCountries)
 
 
 def runSql(host, username, password, database):
@@ -523,8 +512,13 @@ def runSql(host, username, password, database):
     )
     cursor = conn.cursor()
 
-    scripts = ['wifi_bands.sql', 'wifi_countries.sql', 'wifi_fos_countries.sql', 'wifi_radios.sql',
-               'wifi_platforms.sql', 'wifi_fos_platforms.sql', 'wifi_channel_key.sql', 'wifi_channel_map.sql', 'wifi_radio_band.sql']
+    scripts = []
+
+    for folder, dirs, files in os.walk("."):
+        if "." == folder:
+            for f in files:
+                if ".sql" in f:
+                    scripts.append(f)
 
     for script in scripts:
         f = open(script, "r")
@@ -553,6 +547,7 @@ def run():
     path = "D:\\Workspaces\\svn\\fos_mgmt_data"
     bands = None
     countries = {'oid': 0, 'rows': []}
+    fosCountries = {'oid': 0}
 
     for folder, dirs, files in os.walk(path):
         if '.svn' in folder:
@@ -566,10 +561,14 @@ def run():
                 bands = buildWifiBandSql(root)
 
             croot = extractChanListXml(root, version)
-            buildWifiCountriesSql(croot, version, countries)
+            buildWifiCountrySql(croot, version, countries, fosCountries)
 
-    f = open('wifi_countries.sql', 'a')
-    f.write(sqlFooter)
+    for folder, dirs, files in os.walk("."):
+        if "." == folder:
+            for f in files:
+                if ".sql" in f:
+                    fs = open(f, 'a')
+                    fs.write(sqlFooter)
 
 
 def usage():
@@ -623,15 +622,14 @@ def main():
     run()
 
     # buildWifiChannelsSql()
-    # buildWifiFosCountriesSql()
     # buildWifiRadiosSql()
     # buildWifiRadioBandSql()
     # buildWifiPlatformSql()
     # buildWifiFosPlatformSql()
 
-    # runSql(host, username, password, database)
-
     cleanup()
+
+    runSql(host, username, password, database)
 
 
 if __name__ == "__main__":
