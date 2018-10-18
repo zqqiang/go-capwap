@@ -200,10 +200,10 @@ INSERT INTO `wifi_bands` VALUES
 """
 
 
-def buildBandRowSql(f, index, band, last):
+def buildBandRowSql(f, index, band):
     bandLine = Template("'$name', '$help', '$bn'").substitute(band.attrib)
-    f.write("(%d, %s)%s\n" %
-            (index + 1, bandLine, ',' if not last else ';'))
+    f.write("%s\n(%d, %s)" %
+            ('' if 1 == index else ',', index, bandLine))
 
 
 def buildWifiBandSql(root):
@@ -214,7 +214,7 @@ def buildWifiBandSql(root):
     f.write(bandSqlHeader)
 
     for i, band in enumerate(bands):
-        buildBandRowSql(f, i, band, i == len(bands) - 1)
+        buildBandRowSql(f, i + 1, band)
 
     f.write(sqlFooter)
 
@@ -576,6 +576,24 @@ def usage():
     print('wifi.py -h <host> -u <username> -p <password> -d <database>')
 
 
+def setup():
+    for folder, dirs, files in os.walk("."):
+        if "." == folder:
+            for f in files:
+                if ".sql" in f:
+                    os.remove(f)
+                    print("remove {0}".format(f))
+
+
+def cleanup():
+    for folder, dirs, files in os.walk("."):
+        if "." == folder:
+            for f in files:
+                if ".xml" in f:
+                    os.remove(f)
+                    print("remove {0}".format(f))
+
+
 def main():
     try:
         opts, args = getopt.getopt(sys.argv[1:], "h:u:p:d:", [
@@ -600,6 +618,8 @@ def main():
         elif opt in ("-d", "--database"):
             database = arg
 
+    setup()
+
     run()
 
     # buildWifiChannelsSql()
@@ -610,6 +630,8 @@ def main():
     # buildWifiFosPlatformSql()
 
     # runSql(host, username, password, database)
+
+    cleanup()
 
 
 if __name__ == "__main__":
