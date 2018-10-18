@@ -128,21 +128,44 @@ def isCapTypeEqual(platform, wtpcap):
     return wtpcap.attrib['captype'] == platform.attrib['captype']
 
 
-def buildWifiPlatformSql():
-    platforms = root.findall('.//cw_platform_type/platform')
-    wtpcaps = root.findall('.//cw_wtp_cap/wtpcap')
+def buildWifiPlatformSql(root, version, platforms, fosPlatforms):
+    # platforms = root.findall('.//cw_platform_type/platform')
+    # wtpcaps = root.findall('.//cw_wtp_cap/wtpcap')
 
-    f = open('wifi_platforms.sql', 'w')
+    # f = open('wifi_platforms.sql', 'w')
 
-    f.write(platformSqlHeader)
+    # f.write(platformSqlHeader)
 
-    for i, platform in enumerate(platforms):
-        for wtpcap in wtpcaps:
+    # for i, platform in enumerate(platforms):
+    #     for wtpcap in wtpcaps:
+    #         if isCapTypeEqual(platform, wtpcap):
+    #             buildPlatformRowSql(f, platform, wtpcap,
+    #                                 i == len(platforms) - 1)
+
+    # f.write(sqlFooter)
+
+    p = root.findall('.//cw_platform_type/platform')
+    w = root.findall('.//cw_wtp_cap/wtpcap')
+
+    if 0 == platforms['oid']:
+        f = open('wifi_platforms.sql', 'w')
+        f.write(platformSqlHeader)
+        fo = open('wifi_fos_platforms.sql', 'w')
+        fo.write(fosPlatformSqlHeader)
+    else:
+        f = open('wifi_platforms.sql', 'a')
+        fo = open('wifi_fos_platforms.sql', 'a')
+
+    for i, platform in enumerate(p):
+        for wtpcap in w:
             if isCapTypeEqual(platform, wtpcap):
-                buildPlatformRowSql(f, platform, wtpcap,
-                                    i == len(platforms) - 1)
-
-    f.write(sqlFooter)
+                # oid = getPlatformOid(platform, wtpcap, platforms)
+                # if 0 == oid:
+                #     platforms['oid'] += 1
+                #     platforms['rows'].append({})
+                #     oid = platforms['oid']
+                #     buildWifiPlatformRow(f, oid)
+                # buildWifiFosPlatformRow(fo, version, oid, fosPlatforms)
 
 
 fosPlatformSqlHeader = """
@@ -549,6 +572,9 @@ def run():
     countries = {'oid': 0, 'rows': []}
     fosCountries = {'oid': 0}
 
+    platforms = {'oid': 0, 'rows': []}
+    fosPlatforms = {'oid': 0}
+
     for folder, dirs, files in os.walk(path):
         if '.svn' in folder:
             continue
@@ -562,6 +588,7 @@ def run():
 
             croot = extractChanListXml(root, version)
             buildWifiCountrySql(croot, version, countries, fosCountries)
+            buildWifiPlatformSql(croot, version, platforms, fosPlatforms)
 
     for folder, dirs, files in os.walk("."):
         if "." == folder:
