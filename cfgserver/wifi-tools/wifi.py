@@ -173,6 +173,60 @@ def buildWifiPlatformSql(root, version, platforms, fosPlatforms):
         buildWifiFosPlatformRow(fo, formatVersion(version), oid, fosPlatforms)
 
 
+def getRadioOid(radio, radios):
+    for oid, r in enumerate(radios['rows']):
+        if isSameDictionary(r, radio):
+            return oid + 1
+    return 0
+
+
+def buildRadioRowSql(f, oid, radio, radios):
+    radioLine = Template(
+        "$id, $max_mcs_11n, $max_mcs_11ac, $pow_max_2g, $pow_max_5g").substitute(radio.attrib)
+    f.write("%s\n(%d, %s)" %
+            ('' if 1 == radios['oid'] else ',', oid, radioLine))
+
+
+def buildWifiRadioSql(root, version, radios, radioKey, radioMap):
+    wtpcaps = root.findall('.//cw_wtp_cap/wtpcap')
+    for w in wtpcaps:
+        captype = w.attrib["captype"]
+        rs = list(w.iter('radio'))
+        for r in rs:
+            radioId = r.attrib['id']
+
+            if 0 == radios["oid"]:
+                rf = open('wifi_radios.sql', 'w')
+                rf.write(radioSqlHeader)
+            else:
+                rf = open('wifi_radios.sql', 'a')
+
+            oid = getRadioOid(r, radios)
+            if 0 == oid:
+                radios["oid"] += 1
+                radios["rows"].append(r)
+                oid = radios['oid']
+                buildRadioRowSql(rf, oid, r, radios)
+
+    # if 0 == platforms['oid']:
+    #     f = open('wifi_platforms.sql', 'w')
+    #     f.write(platformSqlHeader)
+    #     fo = open('wifi_fos_platforms.sql', 'w')
+    #     fo.write(fosPlatformSqlHeader)
+    # else:
+    #     f = open('wifi_platforms.sql', 'a')
+    #     fo = open('wifi_fos_platforms.sql', 'a')
+
+    # for i, platform in enumerate(p):
+    #     oid = getPlatformOid(platform, platforms)
+    #     if 0 == oid:
+    #         platforms['oid'] += 1
+    #         platforms['rows'].append(platform)
+    #         oid = platforms['oid']
+    #         buildPlatformRowSql(f, oid, platform, platforms)
+    #     buildWifiFosPlatformRow(fo, formatVersion(version), oid, fosPlatforms)
+
+
 fosPlatformSqlHeader = """
 DROP TABLE IF EXISTS `wifi_fos_platforms`;
 
@@ -224,20 +278,21 @@ def buildWifiBandSql(root):
 
     return bands
 
+#   `operMode` char(64) DEFAULT NULL COMMENT 'disable: Disabled, fg: Dedicated Monitor, ap: Access Point, apbg2: ?',
+#   `bandDflt` char(64) DEFAULT NULL COMMENT '',
+
 
 radioSqlHeader = """
 DROP TABLE IF EXISTS `wifi_radios`;
 
 CREATE TABLE `wifi_radios` (
-  `capType` int(11) NOT NULL COMMENT 'platform captype',
+  `oid` int(11) NOT NULL COMMENT 'radio oid',
   `radioId` int(3) DEFAULT NULL COMMENT 'radio id',
   `maxMcs11n` int(8) DEFAULT NULL COMMENT '',
   `maxMcs11ac` int(8) DEFAULT NULL COMMENT '',
   `powMax2g` int(8) DEFAULT NULL COMMENT 'band 2g, auto tx power, tx power max dBm',
   `powMax5g` int(8) DEFAULT NULL COMMENT 'band 5g, auto tx power, tx power max dBm',
-  `operMode` char(64) DEFAULT NULL COMMENT 'disable: Disabled, fg: Dedicated Monitor, ap: Access Point, apbg2: ?',
-  `bandDflt` char(64) DEFAULT NULL COMMENT '',
-  PRIMARY KEY (`capType`, `radioId`)
+  PRIMARY KEY (`oid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `wifi_radios` WRITE;
@@ -246,37 +301,37 @@ INSERT INTO `wifi_radios` VALUES
 """
 
 
-def getDefaultBand(defaultBand):
-    bands = root.findall('.//wl_band_type/wlband')
-    for b, band in enumerate(bands):
-        if band.attrib["bn"] == defaultBand:
-            return b + 1
+# def getDefaultBand(defaultBand):
+#     bands = root.findall('.//wl_band_type/wlband')
+#     for b, band in enumerate(bands):
+#         if band.attrib["bn"] == defaultBand:
+#             return b + 1
 
 
-def buildRadioRowSql(f, capType, radio, last):
-    radioLine = Template(
-        "$id, $max_mcs_11n, $max_mcs_11ac, $pow_max_2g, $pow_max_5g, '$oper_mode'").substitute(radio.attrib)
-    f.write("(%s, %s, %s)%s\n" %
-            (capType, radioLine, getDefaultBand(radio.attrib["band_dflt"]), ',' if not last else ';'))
+# def buildRadioRowSql(f, capType, radio, last):
+#     radioLine = Template(
+#         "$id, $max_mcs_11n, $max_mcs_11ac, $pow_max_2g, $pow_max_5g, '$oper_mode'").substitute(radio.attrib)
+#     f.write("(%s, %s, %s)%s\n" %
+#             (capType, radioLine, getDefaultBand(radio.attrib["band_dflt"]), ',' if not last else ';'))
 
 
-def buildWifiRadiosSql():
-    platforms = root.findall('.//cw_platform_type/platform')
-    wtpcaps = root.findall('.//cw_wtp_cap/wtpcap')
+# def buildWifiRadiosSql():
+#     platforms = root.findall('.//cw_platform_type/platform')
+#     wtpcaps = root.findall('.//cw_wtp_cap/wtpcap')
 
-    f = open('wifi_radios.sql', 'w')
+#     f = open('wifi_radios.sql', 'w')
 
-    f.write(radioSqlHeader)
+#     f.write(radioSqlHeader)
 
-    for i, platform in enumerate(platforms):
-        for wtpcap in wtpcaps:
-            if isCapTypeEqual(platform, wtpcap):
-                radios = list(wtpcap.iter('radio'))
-                for r, radio in enumerate(radios):
-                    buildRadioRowSql(f, platform.attrib["captype"], radio, (i == len(
-                        platforms) - 1) and (r == len(radios) - 1))
+#     for i, platform in enumerate(platforms):
+#         for wtpcap in wtpcaps:
+#             if isCapTypeEqual(platform, wtpcap):
+#                 radios = list(wtpcap.iter('radio'))
+#                 for r, radio in enumerate(radios):
+#                     buildRadioRowSql(f, platform.attrib["captype"], radio, (i == len(
+#                         platforms) - 1) and (r == len(radios) - 1))
 
-    f.write(sqlFooter)
+#     f.write(sqlFooter)
 
 
 radioBandSqlHeader = """
@@ -550,6 +605,10 @@ def run():
     platforms = {'oid': 0, 'rows': []}
     fosPlatforms = {'oid': 0}
 
+    radios = {'oid': 0, 'rows': []}
+    radioKey = {'oid': 0}
+    radioMap = {'oid': 0}
+
     for folder, dirs, files in os.walk(path):
         if '.svn' in folder:
             continue
@@ -564,6 +623,7 @@ def run():
             croot = extractChanListXml(root, version)
             buildWifiCountrySql(croot, version, countries, fosCountries)
             buildWifiPlatformSql(root, version, platforms, fosPlatforms)
+            buildWifiRadioSql(root, version, radios, radioKey, radioMap)
 
     for folder, dirs, files in os.walk("."):
         if "." == folder:
@@ -624,10 +684,7 @@ def main():
     run()
 
     # buildWifiChannelsSql()
-    # buildWifiRadiosSql()
     # buildWifiRadioBandSql()
-    # buildWifiPlatformSql()
-    # buildWifiFosPlatformSql()
 
     cleanup()
 
