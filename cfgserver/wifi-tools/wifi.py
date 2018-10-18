@@ -7,10 +7,6 @@ import mysql.connector
 import xml.etree.ElementTree as ET
 from xml.parsers.expat import ExpatError, errors
 
-# tree = ET.parse('mgmt-data.xml')
-# root = tree.getroot()
-
-# fosVersion = '6.0.0'
 
 countryNotForAp = [
     "511",     # Debug
@@ -82,6 +78,20 @@ countryNotForAp = [
 ]
 
 
+def formatVersion(version):
+    vl = []
+    for c in version:
+        vl.append(c)
+    return "{0}.{1}.{2}".format(vl[0], vl[1], vl[2])
+
+
+def isSameDictionary(left, right):
+    for k, v in left.items():
+        if not (right.attrib[k] == v):
+            return False
+    return True
+
+
 def isCountryForAp(countryCode):
     return countryCode not in countryNotForAp
 
@@ -91,21 +101,22 @@ sqlFooter = """;
 UNLOCK TABLE;
 """
 
+# `cap` int(11) NOT NULL COMMENT 'wtpcap.cap',
+# `maxVaps` int(11) NOT NULL COMMENT 'wtpcap.max_vaps',
+# `wanLan` int(11) NOT NULL COMMENT 'wtpcap.wan_lan',
+# `maxLan` int(11) NOT NULL COMMENT 'wtpcap.max_lan: max lan port number',
+# `bintMin` int(11) NOT NULL COMMENT 'wtpcap.bint_min: min beacon interval',
+# `bintMax` int(11) NOT NULL COMMENT 'wtpcap.bint_max: max beacon interval',
 
 platformSqlHeader = """
 DROP TABLE IF EXISTS `wifi_platforms`;
 
 CREATE TABLE `wifi_platforms` (
+`oid` int(11) NOT NULL COMMENT 'platform oid',
 `captype` int(11) NOT NULL COMMENT 'platform.captype',
 `platformName` char(6) DEFAULT NULL COMMENT 'platform.name',
 `display` char(16) DEFAULT NULL COMMENT 'platform.help',
-`cap` int(11) NOT NULL COMMENT 'wtpcap.cap',
-`maxVaps` int(11) NOT NULL COMMENT 'wtpcap.max_vaps',
-`wanLan` int(11) NOT NULL COMMENT 'wtpcap.wan_lan',
-`maxLan` int(11) NOT NULL COMMENT 'wtpcap.max_lan: max lan port number',
-`bintMin` int(11) NOT NULL COMMENT 'wtpcap.bint_min: min beacon interval',
-`bintMax` int(11) NOT NULL COMMENT 'wtpcap.bint_max: max beacon interval',
-PRIMARY KEY (`captype`)
+PRIMARY KEY (`oid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `wifi_platforms` WRITE;
@@ -114,38 +125,34 @@ INSERT INTO `wifi_platforms` VALUES
 """
 
 
-def buildPlatformRowSql(f, platform, wtpcap, last):
+def buildPlatformRowSql(f, oid, platform, platforms):
     platformLine = Template("$captype,'$name'").substitute(
         platform.attrib)
-    help = platform.attrib["help"].rstrip(".")
-    wtpcapLine = Template(
-        "$cap, $max_vaps, $wan_lan, $max_lan, $bint_min, $bint_max").substitute(wtpcap.attrib)
-    f.write("(%s, '%s', %s)%s\n" %
-            (platformLine, help, wtpcapLine, ',' if not last else ';'))
+    help = platform.attrib['help'].rstrip('.')
+    f.write("%s\n(%d, %s, '%s')" %
+            ('' if 1 == platforms['oid'] else ',', oid, platformLine, help))
 
 
 def isCapTypeEqual(platform, wtpcap):
     return wtpcap.attrib['captype'] == platform.attrib['captype']
 
 
+def getPlatformOid(platform, platforms):
+    for oid, p in enumerate(platforms['rows']):
+        if platform.attrib['captype'] == p.attrib["captype"]:
+            if isSameDictionary(p, platform):
+                return oid + 1
+    return 0
+
+
+def buildWifiFosPlatformRow(f, fosVersion, platformOid, fosPlatforms):
+    fosPlatforms['oid'] += 1
+    f.write("%s\n('%s', %s)" %
+            ('' if 1 == fosPlatforms['oid'] else ',', fosVersion, platformOid))
+
+
 def buildWifiPlatformSql(root, version, platforms, fosPlatforms):
-    # platforms = root.findall('.//cw_platform_type/platform')
-    # wtpcaps = root.findall('.//cw_wtp_cap/wtpcap')
-
-    # f = open('wifi_platforms.sql', 'w')
-
-    # f.write(platformSqlHeader)
-
-    # for i, platform in enumerate(platforms):
-    #     for wtpcap in wtpcaps:
-    #         if isCapTypeEqual(platform, wtpcap):
-    #             buildPlatformRowSql(f, platform, wtpcap,
-    #                                 i == len(platforms) - 1)
-
-    # f.write(sqlFooter)
-
     p = root.findall('.//cw_platform_type/platform')
-    w = root.findall('.//cw_wtp_cap/wtpcap')
 
     if 0 == platforms['oid']:
         f = open('wifi_platforms.sql', 'w')
@@ -157,15 +164,13 @@ def buildWifiPlatformSql(root, version, platforms, fosPlatforms):
         fo = open('wifi_fos_platforms.sql', 'a')
 
     for i, platform in enumerate(p):
-        for wtpcap in w:
-            if isCapTypeEqual(platform, wtpcap):
-                # oid = getPlatformOid(platform, wtpcap, platforms)
-                # if 0 == oid:
-                #     platforms['oid'] += 1
-                #     platforms['rows'].append({})
-                #     oid = platforms['oid']
-                #     buildWifiPlatformRow(f, oid)
-                # buildWifiFosPlatformRow(fo, version, oid, fosPlatforms)
+        oid = getPlatformOid(platform, platforms)
+        if 0 == oid:
+            platforms['oid'] += 1
+            platforms['rows'].append(platform)
+            oid = platforms['oid']
+            buildPlatformRowSql(f, oid, platform, platforms)
+        buildWifiFosPlatformRow(fo, formatVersion(version), oid, fosPlatforms)
 
 
 fosPlatformSqlHeader = """
@@ -173,37 +178,13 @@ DROP TABLE IF EXISTS `wifi_fos_platforms`;
 
 CREATE TABLE `wifi_fos_platforms` (
 `fosVersion` char(8) NOT NULL COMMENT 'fos version',
-`captype` int(11) NOT NULL COMMENT 'platform.captype'
+`platformOid` int(11) NOT NULL COMMENT 'platform oid'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `wifi_fos_platforms` WRITE;
 
 INSERT INTO `wifi_fos_platforms` VALUES
 """
-
-
-def buildFosPlatformRowSql(f, index, platform, wtpcap, last):
-    platformLine = Template("$captype").substitute(
-        platform.attrib)
-    f.write("('%s', %s)%s\n" %
-            (fosVersion, platformLine, ',' if not last else ';'))
-
-
-def buildWifiFosPlatformSql():
-    platforms = root.findall('.//cw_platform_type/platform')
-    wtpcaps = root.findall('.//cw_wtp_cap/wtpcap')
-
-    f = open('wifi_fos_platforms.sql', 'w')
-
-    f.write(fosPlatformSqlHeader)
-
-    for i, platform in enumerate(platforms):
-        for wtpcap in wtpcaps:
-            if isCapTypeEqual(platform, wtpcap):
-                buildFosPlatformRowSql(f, i, platform, wtpcap,
-                                       i == len(platforms) - 1)
-
-    f.write(sqlFooter)
 
 
 bandSqlHeader = """
@@ -460,13 +441,6 @@ INSERT INTO `wifi_countries` VALUES
 """
 
 
-def isSameDictionary(left, right):
-    for k, v in left.items():
-        if not (right.attrib[k] == v):
-            return False
-    return True
-
-
 def getCountryOid(country, countries):
     for oid, c in enumerate(countries['rows']):
         if country.attrib['iso'] == c.attrib["iso"]:
@@ -488,7 +462,7 @@ DROP TABLE IF EXISTS `wifi_fos_countries`;
 
 CREATE TABLE `wifi_fos_countries` (
   `fosVersion` char(8) NOT NULL COMMENT 'fos version',
-  `oid` int(11) NOT NULL COMMENT 'country oid'
+  `countryOid` int(11) NOT NULL COMMENT 'country oid'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `wifi_fos_countries` WRITE;
@@ -523,7 +497,8 @@ def buildWifiCountrySql(croot, version, countries, fosCountries):
                 countries['rows'].append(country)
                 oid = countries['oid']
                 buildWifiCountryRow(f, oid, country)
-            buildWifiFosCountryRow(fo, version, oid, fosCountries)
+            buildWifiFosCountryRow(
+                fo, formatVersion(version), oid, fosCountries)
 
 
 def runSql(host, username, password, database):
@@ -588,7 +563,7 @@ def run():
 
             croot = extractChanListXml(root, version)
             buildWifiCountrySql(croot, version, countries, fosCountries)
-            buildWifiPlatformSql(croot, version, platforms, fosPlatforms)
+            buildWifiPlatformSql(root, version, platforms, fosPlatforms)
 
     for folder, dirs, files in os.walk("."):
         if "." == folder:
