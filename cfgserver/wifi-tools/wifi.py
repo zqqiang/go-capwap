@@ -436,13 +436,18 @@ INSERT INTO `wifi_countries` VALUES
 """
 
 
+def isSameDictionary(left, right):
+    for k, v in left.items():
+        if not (right.attrib[k] == v):
+            return False
+    return True
+
+
 def isCountryExist(country, countries):
     for c in countries['rows']:
         if country.attrib['iso'] == c.attrib["iso"]:
-            for k, v in country.items():
-                if c.attrib[k] == v:
-                    continue
-            return True
+            if isSameDictionary(c, country):
+                return True
     return False
 
 
