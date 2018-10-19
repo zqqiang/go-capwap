@@ -85,9 +85,16 @@ def formatVersion(version):
     return "{0}.{1}.{2}".format(vl[0], vl[1], vl[2])
 
 
-def isSameDictionary(left, right):
+def isSameXmlDictionary(left, right):
     for k, v in left.items():
         if not (right.attrib[k] == v):
+            return False
+    return True
+
+
+def isSamePureDictionary(left, right):
+    for k, v in left.items():
+        if not (right[k] == v):
             return False
     return True
 
@@ -140,7 +147,7 @@ def isCapTypeEqual(platform, wtpcap):
 def getPlatformOid(platform, platforms):
     for oid, p in enumerate(platforms['rows']):
         if platform.attrib['captype'] == p.attrib["captype"]:
-            if isSameDictionary(p, platform):
+            if isSameXmlDictionary(p, platform):
                 return oid + 1
     return 0
 
@@ -175,7 +182,14 @@ def buildWifiPlatformSql(root, version, platforms, fosPlatforms):
 
 def getRadioOid(radio, radios):
     for oid, r in enumerate(radios['rows']):
-        if isSameDictionary(r, radio):
+        if isSameXmlDictionary(r, radio):
+            return oid + 1
+    return 0
+
+
+def getRadioKeyOid(version, capType, radioKey):
+    for oid, rk in enumerate(radioKey['rows']):
+        if isSamePureDictionary(rk, {'fosVersion': version, 'capType': capType}):
             return oid + 1
     return 0
 
@@ -187,10 +201,15 @@ def buildRadioRowSql(f, oid, radio, radios):
             ('' if 1 == radios['oid'] else ',', oid, radioLine))
 
 
+def buildRadioKeyRowSql(f, koid, version, capType, radioKey):
+    f.write("%s\n(%d, '%s', '%s')" %
+            ('' if 1 == radioKey['oid'] else ',', koid, version, capType))
+
+
 def buildWifiRadioSql(root, version, radios, radioKey, radioMap):
     wtpcaps = root.findall('.//cw_wtp_cap/wtpcap')
     for w in wtpcaps:
-        captype = w.attrib["captype"]
+        capType = w.attrib["captype"]
         rs = list(w.iter('radio'))
         for r in rs:
             radioId = r.attrib['id']
@@ -201,12 +220,26 @@ def buildWifiRadioSql(root, version, radios, radioKey, radioMap):
             else:
                 rf = open('wifi_radios.sql', 'a')
 
+            if 0 == radioKey['oid']:
+                rk = open('wifi_radio_key.sql', 'w')
+                rk.write(radioKeySqlHeader)
+            else:
+                rk = open('wifi_radio_key.sql', 'a')
+
             oid = getRadioOid(r, radios)
             if 0 == oid:
                 radios["oid"] += 1
                 radios["rows"].append(r)
                 oid = radios['oid']
                 buildRadioRowSql(rf, oid, r, radios)
+
+            koid = getRadioKeyOid(version, capType, radioKey)
+            if 0 == koid:
+                radioKey['oid'] += 1
+                radioKey['rows'].append(
+                    {'fosVersion': version, 'capType': capType})
+                koid = radioKey['oid']
+                buildRadioKeyRowSql(rk, koid, version, capType, radioKey)
 
     # if 0 == platforms['oid']:
     #     f = open('wifi_platforms.sql', 'w')
@@ -298,6 +331,21 @@ CREATE TABLE `wifi_radios` (
 LOCK TABLES `wifi_radios` WRITE;
 
 INSERT INTO `wifi_radios` VALUES
+"""
+
+radioKeySqlHeader = """
+DROP TABLE IF EXISTS `wifi_radio_key`;
+
+CREATE TABLE `wifi_radio_key` (
+  `oid` int(11) NOT NULL COMMENT 'radio key oid',
+  `fosVersion` char(8) NOT NULL COMMENT 'fos version',
+  `capType` int(11) NOT NULL COMMENT 'platform captype',
+  PRIMARY KEY (`oid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+LOCK TABLES `wifi_radio_key` WRITE;
+
+INSERT INTO `wifi_radio_key` VALUES
 """
 
 
@@ -499,7 +547,7 @@ INSERT INTO `wifi_countries` VALUES
 def getCountryOid(country, countries):
     for oid, c in enumerate(countries['rows']):
         if country.attrib['iso'] == c.attrib["iso"]:
-            if isSameDictionary(c, country):
+            if isSameXmlDictionary(c, country):
                 return oid + 1
     return 0
 
@@ -606,7 +654,7 @@ def run():
     fosPlatforms = {'oid': 0}
 
     radios = {'oid': 0, 'rows': []}
-    radioKey = {'oid': 0}
+    radioKey = {'oid': 0, 'rows': []}
     radioMap = {'oid': 0}
 
     for folder, dirs, files in os.walk(path):
