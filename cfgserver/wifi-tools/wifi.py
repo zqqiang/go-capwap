@@ -456,7 +456,7 @@ def getCountryOid(country, countries):
 def buildWifiCountryRow(f, countryOid, country):
     countryLine = Template(
         "'$iso', $code, $dmn").substitute(country.attrib)
-    countryName = country.attrib['name'].title()
+    countryName = country.attrib['name'].title().rstrip('2')
     f.write("%s\n(%d, %s, '%s')" %
             ('' if (1 == countryOid) else ',', countryOid, countryLine, countryName))
 
