@@ -226,6 +226,12 @@ def buildWifiRadioSql(root, version, radios, radioKey, radioMap):
             else:
                 rk = open('wifi_radio_key.sql', 'a')
 
+            # if 0 == radioMap['oid']:
+            #     rk = open('wifi_radio_map.sql', 'w')
+            #     rk.write(radioMapSqlHeader)
+            # else:
+            #     rk = open('wifi_radio_map.sql', 'a')
+
             oid = getRadioOid(r, radios)
             if 0 == oid:
                 radios["oid"] += 1
@@ -282,6 +288,7 @@ CREATE TABLE `wifi_bands` (
   `name` char(16) DEFAULT NULL COMMENT 'band name',
   `help` char(32) DEFAULT NULL COMMENT 'band help',
   `bn` char(6) DEFAULT NULL COMMENT 'todo ?',
+  `frequency` char(6) DEFAULT NULL COMMENT 'band frequency',
   PRIMARY KEY (`oid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -290,11 +297,14 @@ LOCK TABLES `wifi_bands` WRITE;
 INSERT INTO `wifi_bands` VALUES
 """
 
+freqMap = ['5', '2.4', '2.4', '2.4', '5',
+           '5', '2.4', '2.4', '2.4', '5', '5', '5']
 
-def buildBandRowSql(f, index, band):
+
+def buildBandRowSql(f, oid, band):
     bandLine = Template("'$name', '$help', '$bn'").substitute(band.attrib)
-    f.write("%s\n(%d, %s)" %
-            ('' if 1 == index else ',', index, bandLine))
+    f.write("%s\n(%d, %s, %s)" %
+            ('' if 1 == oid else ',', oid, bandLine, freqMap[oid - 1]))
 
 
 def buildWifiBandSql(root):
