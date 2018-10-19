@@ -108,13 +108,6 @@ sqlFooter = """;
 UNLOCK TABLE;
 """
 
-# `cap` int(11) NOT NULL COMMENT 'wtpcap.cap',
-# `maxVaps` int(11) NOT NULL COMMENT 'wtpcap.max_vaps',
-# `wanLan` int(11) NOT NULL COMMENT 'wtpcap.wan_lan',
-# `maxLan` int(11) NOT NULL COMMENT 'wtpcap.max_lan: max lan port number',
-# `bintMin` int(11) NOT NULL COMMENT 'wtpcap.bint_min: min beacon interval',
-# `bintMax` int(11) NOT NULL COMMENT 'wtpcap.bint_max: max beacon interval',
-
 platformSqlHeader = """
 DROP TABLE IF EXISTS `wifi_platforms`;
 
@@ -224,8 +217,6 @@ def buildWifiRadioSql(root, version, radios, radioKey, radioMap, radioBand, band
         capType = w.attrib["captype"]
         rs = list(w.iter('radio'))
         for r in rs:
-            radioId = r.attrib['id']
-
             if 0 == radios["oid"]:
                 rf = open('wifi_radios.sql', 'w')
                 rf.write(radioSqlHeader)
@@ -325,8 +316,6 @@ def buildWifiBandSql(root):
     f.write(sqlFooter)
 
     return bands
-
-#   `operMode` char(64) DEFAULT NULL COMMENT 'disable: Disabled, fg: Dedicated Monitor, ap: Access Point, apbg2: ?',
 
 
 radioSqlHeader = """
@@ -429,75 +418,13 @@ DROP TABLE IF EXISTS `wifi_channel_map`;
 
 CREATE TABLE `wifi_channel_map` (
   `oid` int(11) NOT NULL COMMENT 'channel key oid',
-  `channel` int(8) NOT NULL COMMENT 'channel value'
+  `channel` char(8) NOT NULL COMMENT 'channel value'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `wifi_channel_map` WRITE;
 
 INSERT INTO `wifi_channel_map` VALUES
 """
-
-
-def buildWifiChannelRow(f, fm, oid, country, channel, last):
-    if "bonding" in channel.attrib:
-        channelLine = Template(
-            "$band, '$bn', '$bonding', $outdoor").substitute(channel.attrib)
-    else:
-        channelLine = Template(
-            "$band, '$bn', 'none', $outdoor").substitute(channel.attrib)
-
-    if channel.text != None:
-        channels = channel.text
-    else:
-        channels = ''
-
-    f.write("(%d, '%s', %s, %s)%s\n" %
-            (oid, fosVersion, country.attrib["code"], channelLine, ',' if not last else ';'))
-
-    clist = channels.split(',')
-    for ci, cv in enumerate(clist):
-        clast = last and ci == len(clist) - 1
-        cv = cv.replace('+', '').replace('-', '').replace('*', '')
-        if cv:
-            fm.write("(%d, %s)%s\n" %
-                     (oid, cv, ',' if not clast else ';'))
-        # else:
-        #     print(clist)
-
-
-def buildWifiChannelsSql():
-    countries = root.findall('.//file[@name="wlchanlist.txt"]')
-    country = countries[0]
-
-    f = open('wifi_channel_key.sql', 'w')
-    fm = open('wifi_channel_map.sql', 'w')
-
-    cf = open('chanlist.xml', 'w')
-    cf.write(country.text.strip())
-
-    ctree = ET.parse('chanlist.xml')
-    croot = ctree.getroot()
-
-    countries = croot.findall('.//country')
-
-    f.write(channelKeySqlHeader)
-    fm.write(channelMapSqlHeader)
-
-    oid = 0
-
-    for cn, country in enumerate(countries):
-        if isCountryForAp(country.attrib['code']):
-            cond = './/country[@code="{0}"]/channel'.format(
-                country.attrib['code'])
-            channels = croot.findall(cond)
-            for ch, channel in enumerate(channels):
-                oid += 1
-                buildWifiChannelRow(f, fm, oid, country, channel,
-                                    (cn == len(countries) - 1 and ch == len(channels) - 1))
-
-    f.write(sqlFooter)
-    fm.write(sqlFooter)
-
 
 countrySqlHeader = """
 DROP TABLE IF EXISTS `wifi_countries`;
@@ -553,7 +480,33 @@ def buildWifiFosCountryRow(f, fosVersion, countryOid, fosCountries):
             ('' if 1 == fosCountries['oid'] else ',', fosVersion, countryOid))
 
 
-def buildWifiCountrySql(croot, version, countries, fosCountries):
+def buildChannelKeyRow(f, fosVersion, countryOid, channel, channelKey):
+    channelKey['oid'] += 1
+    if "bonding" in channel.attrib:
+        channelLine = Template(
+            "$band, '$bn', '$bonding', $outdoor").substitute(channel.attrib)
+    else:
+        channelLine = Template(
+            "$band, '$bn', 'none', $outdoor").substitute(channel.attrib)
+    f.write("%s\n(%s,'%s',%s,%s)" % (
+        '' if 1 == channelKey['oid'] else ',', channelKey['oid'], fosVersion, countryOid, channelLine))
+
+
+def buildChannelMapRow(f, channelKeyOid, channel, channelMap):
+    if channel.text != None:
+        channels = channel.text
+    else:
+        channels = ''
+
+    clist = channels.split(',')
+    for cv in clist:
+        if cv:
+            channelMap['oid'] += 1
+            f.write("%s\n(%d, '%s')" %
+                    ('' if 1 == channelMap['oid'] else ',', channelKeyOid, cv))
+
+
+def buildWifiCountryAndChannelSql(croot, version, countries, fosCountries, channelKey, channelMap):
     cs = croot.findall('.//country')
 
     if 0 == countries['oid']:
@@ -565,16 +518,33 @@ def buildWifiCountrySql(croot, version, countries, fosCountries):
         f = open('wifi_countries.sql', 'a')
         fo = open('wifi_fos_countries.sql', 'a')
 
+    if 0 == channelKey['oid']:
+        fck = open('wifi_channel_key.sql', 'w')
+        fck.write(channelKeySqlHeader)
+    else:
+        fck = open('wifi_channel_key.sql', 'a')
+
+    if 0 == channelMap['oid']:
+        fcm = open('wifi_channel_map.sql', 'w')
+        fcm.write(channelMapSqlHeader)
+    else:
+        fcm = open('wifi_channel_map.sql', 'a')
+
     for country in cs:
         if isCountryForAp(country.attrib['code']):
-            oid = getCountryOid(country, countries)
-            if 0 == oid:
+            countryOid = getCountryOid(country, countries)
+            if 0 == countryOid:
                 countries['oid'] += 1
                 countries['rows'].append(country)
-                oid = countries['oid']
-                buildWifiCountryRow(f, oid, country)
+                countryOid = countries['oid']
+                buildWifiCountryRow(f, countryOid, country)
             buildWifiFosCountryRow(
-                fo, formatVersion(version), oid, fosCountries)
+                fo, formatVersion(version), countryOid, fosCountries)
+            chs = list(country.iter('channel'))
+            for c in chs:
+                buildChannelKeyRow(fck, formatVersion(
+                    version), countryOid, c, channelKey)
+                buildChannelMapRow(fcm, channelKey['oid'], c, channelMap)
 
 
 def runSql(host, username, password, database):
@@ -631,6 +601,9 @@ def run():
     radioMap = {'oid': 0}
     radioBand = {'oid': 0}
 
+    channelKey = {'oid': 0}
+    channelMap = {'oid': 0}
+
     for folder, dirs, files in os.walk(path):
         if '.svn' in folder:
             continue
@@ -643,7 +616,8 @@ def run():
                 bands = buildWifiBandSql(root)
 
             croot = extractChanListXml(root, version)
-            buildWifiCountrySql(croot, version, countries, fosCountries)
+            buildWifiCountryAndChannelSql(
+                croot, version, countries, fosCountries, channelKey, channelMap)
             buildWifiPlatformSql(root, version, platforms, fosPlatforms)
             buildWifiRadioSql(root, version, radios,
                               radioKey, radioMap, radioBand, bands)
@@ -705,8 +679,6 @@ def main():
     setup()
 
     run()
-
-    # buildWifiChannelsSql()
 
     cleanup()
 
