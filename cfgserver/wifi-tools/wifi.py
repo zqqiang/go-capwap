@@ -194,11 +194,18 @@ def getRadioKeyOid(version, capType, radioKey):
     return 0
 
 
-def buildRadioRowSql(f, oid, radio, radios):
+def getDefaultBand(defaultBand, bands):
+    for b, band in enumerate(bands):
+        if band.attrib["bn"] == defaultBand:
+            return b + 1
+
+
+def buildRadioRowSql(f, oid, radio, radios, bands):
     radioLine = Template(
         "$id, $max_mcs_11n, $max_mcs_11ac, $pow_max_2g, $pow_max_5g").substitute(radio.attrib)
-    f.write("%s\n(%d, %s)" %
-            ('' if 1 == radios['oid'] else ',', oid, radioLine))
+    defaultBand = getDefaultBand(radio.attrib['band_dflt'], bands)
+    f.write("%s\n(%d, %s, %s)" %
+            ('' if 1 == radios['oid'] else ',', oid, radioLine, defaultBand))
 
 
 def buildRadioKeyRowSql(f, koid, version, capType, radioKey):
@@ -248,7 +255,7 @@ def buildWifiRadioSql(root, version, radios, radioKey, radioMap, radioBand, band
                 radios["oid"] += 1
                 radios["rows"].append(r)
                 oid = radios['oid']
-                buildRadioRowSql(rf, oid, r, radios)
+                buildRadioRowSql(rf, oid, r, radios, bands)
 
             koid = getRadioKeyOid(version, capType, radioKey)
             if 0 == koid:
@@ -320,7 +327,6 @@ def buildWifiBandSql(root):
     return bands
 
 #   `operMode` char(64) DEFAULT NULL COMMENT 'disable: Disabled, fg: Dedicated Monitor, ap: Access Point, apbg2: ?',
-#   `bandDflt` char(64) DEFAULT NULL COMMENT '',
 
 
 radioSqlHeader = """
@@ -333,6 +339,7 @@ CREATE TABLE `wifi_radios` (
   `maxMcs11ac` int(8) DEFAULT NULL COMMENT '',
   `powMax2g` int(8) DEFAULT NULL COMMENT 'band 2g, auto tx power, tx power max dBm',
   `powMax5g` int(8) DEFAULT NULL COMMENT 'band 5g, auto tx power, tx power max dBm',
+  `defaultBandOid` int(11) DEFAULT NULL COMMENT 'default band oid',
   PRIMARY KEY (`oid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -369,12 +376,6 @@ LOCK TABLES `wifi_radio_map` WRITE;
 INSERT INTO `wifi_radio_map` VALUES
 """
 
-
-# def getDefaultBand(defaultBand):
-#     bands = root.findall('.//wl_band_type/wlband')
-#     for b, band in enumerate(bands):
-#         if band.attrib["bn"] == defaultBand:
-#             return b + 1
 
 radioBandSqlHeader = """
 DROP TABLE IF EXISTS `wifi_radio_band`;
