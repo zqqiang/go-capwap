@@ -254,7 +254,8 @@ def buildWifiRadioSql(root, version, radios, radioKey, radioMap, radioBand, band
                 radioKey['rows'].append(
                     {'fosVersion': version, 'capType': capType})
                 koid = radioKey['oid']
-                buildRadioKeyRowSql(rk, koid, version, capType, radioKey)
+                buildRadioKeyRowSql(rk, koid, formatVersion(
+                    version), capType, radioKey)
 
             radioMap['oid'] += 1
             buildRadioMapRowSql(rm, koid, oid, radioMap)
@@ -587,6 +588,21 @@ def extractChanListXml(root, version):
     return croot
 
 
+viewSql = """
+CREATE OR REPLACE VIEW `wifi_fos_platform_radio_band` AS
+    SELECT fosVersion, platformName, rb.radioOid, bandOid
+    FROM wifi_radio_band rb
+        INNER JOIN wifi_radio_map rm ON rm.radioOid = rb.radioOid
+        INNER JOIN wifi_radio_key rk ON rk.oid = rm.radioKeyOid
+        INNER JOIN wifi_platforms p ON p.capType = rk.capType;
+"""
+
+
+def buildView():
+    f = open('wifi_view.sql', 'w')
+    f.write(viewSql)
+
+
 def run():
     path = "D:\\Workspaces\\svn\\fos_mgmt_data"
     bands = None
@@ -628,6 +644,8 @@ def run():
                 if ".sql" in f:
                     fs = open(f, 'a')
                     fs.write(sqlFooter)
+
+    buildView()
 
 
 def usage():
