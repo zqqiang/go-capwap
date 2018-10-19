@@ -211,7 +211,7 @@ def buildRadioMapRowSql(f, koid, oid, radioMap):
             ('' if 1 == radioMap['oid'] else ',', koid, oid))
 
 
-def buildWifiRadioSql(root, version, radios, radioKey, radioMap):
+def buildWifiRadioSql(root, version, radios, radioKey, radioMap, radioBand, bands):
     wtpcaps = root.findall('.//cw_wtp_cap/wtpcap')
     for w in wtpcaps:
         capType = w.attrib["captype"]
@@ -237,6 +237,12 @@ def buildWifiRadioSql(root, version, radios, radioKey, radioMap):
             else:
                 rm = open('wifi_radio_map.sql', 'a')
 
+            if 0 == radioBand['oid']:
+                rb = open('wifi_radio_band.sql', 'w')
+                rb.write(radioBandSqlHeader)
+            else:
+                rb = open('wifi_radio_band.sql', 'a')
+
             oid = getRadioOid(r, radios)
             if 0 == oid:
                 radios["oid"] += 1
@@ -254,6 +260,8 @@ def buildWifiRadioSql(root, version, radios, radioKey, radioMap):
 
             radioMap['oid'] += 1
             buildRadioMapRowSql(rm, koid, oid, radioMap)
+
+            buildRadioBandRowSql(rb, oid, r, bands, radioBand)
 
 
 fosPlatformSqlHeader = """
@@ -372,8 +380,7 @@ radioBandSqlHeader = """
 DROP TABLE IF EXISTS `wifi_radio_band`;
 
 CREATE TABLE `wifi_radio_band` (
-  `capType` int(11) NOT NULL COMMENT 'platform captype',
-  `radioId` int(3) DEFAULT NULL COMMENT 'radio id',
+  `radioOid` int(3) DEFAULT NULL COMMENT 'radio oid',
   `bandOid` int(11) NOT NULL COMMENT 'band oid'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -383,9 +390,12 @@ INSERT INTO `wifi_radio_band` VALUES
 """
 
 
-def buildRadioBandRowSql(f, capType, radioId, bandOid, last):
-    f.write("(%s, %s, %s)%s\n" %
-            (capType, radioId, bandOid, ',' if not last else ';'))
+def buildRadioBandRowSql(f, radioOid, radio, bands, radioBand):
+    for bandOid, b in enumerate(bands):
+        if b.attrib['bn'] in radio.attrib['band_mask']:
+            radioBand['oid'] += 1
+            f.write("%s\n(%s, %s)" %
+                    ('' if 1 == radioBand['oid'] else ',', radioOid, bandOid + 1))
 
 
 def isBandEqual(radio, band):
@@ -642,6 +652,7 @@ def run():
     radios = {'oid': 0, 'rows': []}
     radioKey = {'oid': 0, 'rows': []}
     radioMap = {'oid': 0}
+    radioBand = {'oid': 0}
 
     for folder, dirs, files in os.walk(path):
         if '.svn' in folder:
@@ -657,7 +668,8 @@ def run():
             croot = extractChanListXml(root, version)
             buildWifiCountrySql(croot, version, countries, fosCountries)
             buildWifiPlatformSql(root, version, platforms, fosPlatforms)
-            buildWifiRadioSql(root, version, radios, radioKey, radioMap)
+            buildWifiRadioSql(root, version, radios,
+                              radioKey, radioMap, radioBand, bands)
 
     for folder, dirs, files in os.walk("."):
         if "." == folder:
