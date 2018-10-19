@@ -206,6 +206,11 @@ def buildRadioKeyRowSql(f, koid, version, capType, radioKey):
             ('' if 1 == radioKey['oid'] else ',', koid, version, capType))
 
 
+def buildRadioMapRowSql(f, koid, oid, radioMap):
+    f.write("%s\n(%d, %d)" %
+            ('' if 1 == radioMap['oid'] else ',', koid, oid))
+
+
 def buildWifiRadioSql(root, version, radios, radioKey, radioMap):
     wtpcaps = root.findall('.//cw_wtp_cap/wtpcap')
     for w in wtpcaps:
@@ -226,11 +231,11 @@ def buildWifiRadioSql(root, version, radios, radioKey, radioMap):
             else:
                 rk = open('wifi_radio_key.sql', 'a')
 
-            # if 0 == radioMap['oid']:
-            #     rk = open('wifi_radio_map.sql', 'w')
-            #     rk.write(radioMapSqlHeader)
-            # else:
-            #     rk = open('wifi_radio_map.sql', 'a')
+            if 0 == radioMap['oid']:
+                rm = open('wifi_radio_map.sql', 'w')
+                rm.write(radioMapSqlHeader)
+            else:
+                rm = open('wifi_radio_map.sql', 'a')
 
             oid = getRadioOid(r, radios)
             if 0 == oid:
@@ -247,23 +252,8 @@ def buildWifiRadioSql(root, version, radios, radioKey, radioMap):
                 koid = radioKey['oid']
                 buildRadioKeyRowSql(rk, koid, version, capType, radioKey)
 
-    # if 0 == platforms['oid']:
-    #     f = open('wifi_platforms.sql', 'w')
-    #     f.write(platformSqlHeader)
-    #     fo = open('wifi_fos_platforms.sql', 'w')
-    #     fo.write(fosPlatformSqlHeader)
-    # else:
-    #     f = open('wifi_platforms.sql', 'a')
-    #     fo = open('wifi_fos_platforms.sql', 'a')
-
-    # for i, platform in enumerate(p):
-    #     oid = getPlatformOid(platform, platforms)
-    #     if 0 == oid:
-    #         platforms['oid'] += 1
-    #         platforms['rows'].append(platform)
-    #         oid = platforms['oid']
-    #         buildPlatformRowSql(f, oid, platform, platforms)
-    #     buildWifiFosPlatformRow(fo, formatVersion(version), oid, fosPlatforms)
+            radioMap['oid'] += 1
+            buildRadioMapRowSql(rm, koid, oid, radioMap)
 
 
 fosPlatformSqlHeader = """
@@ -358,39 +348,25 @@ LOCK TABLES `wifi_radio_key` WRITE;
 INSERT INTO `wifi_radio_key` VALUES
 """
 
+radioMapSqlHeader = """
+DROP TABLE IF EXISTS `wifi_radio_map`;
+
+CREATE TABLE `wifi_radio_map` (
+  `radioKeyOid` int(11) NOT NULL COMMENT 'radio key oid',
+  `radioOid` int(11) NOT NULL COMMENT 'radio oid'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+LOCK TABLES `wifi_radio_map` WRITE;
+
+INSERT INTO `wifi_radio_map` VALUES
+"""
+
 
 # def getDefaultBand(defaultBand):
 #     bands = root.findall('.//wl_band_type/wlband')
 #     for b, band in enumerate(bands):
 #         if band.attrib["bn"] == defaultBand:
 #             return b + 1
-
-
-# def buildRadioRowSql(f, capType, radio, last):
-#     radioLine = Template(
-#         "$id, $max_mcs_11n, $max_mcs_11ac, $pow_max_2g, $pow_max_5g, '$oper_mode'").substitute(radio.attrib)
-#     f.write("(%s, %s, %s)%s\n" %
-#             (capType, radioLine, getDefaultBand(radio.attrib["band_dflt"]), ',' if not last else ';'))
-
-
-# def buildWifiRadiosSql():
-#     platforms = root.findall('.//cw_platform_type/platform')
-#     wtpcaps = root.findall('.//cw_wtp_cap/wtpcap')
-
-#     f = open('wifi_radios.sql', 'w')
-
-#     f.write(radioSqlHeader)
-
-#     for i, platform in enumerate(platforms):
-#         for wtpcap in wtpcaps:
-#             if isCapTypeEqual(platform, wtpcap):
-#                 radios = list(wtpcap.iter('radio'))
-#                 for r, radio in enumerate(radios):
-#                     buildRadioRowSql(f, platform.attrib["captype"], radio, (i == len(
-#                         platforms) - 1) and (r == len(radios) - 1))
-
-#     f.write(sqlFooter)
-
 
 radioBandSqlHeader = """
 DROP TABLE IF EXISTS `wifi_radio_band`;
