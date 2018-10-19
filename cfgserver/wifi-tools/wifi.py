@@ -404,30 +404,6 @@ def isBandEqual(radio, band):
     return bn in mask
 
 
-def buildWifiRadioBandSql():
-    platforms = root.findall('.//cw_platform_type/platform')
-    wtpcaps = root.findall('.//cw_wtp_cap/wtpcap')
-    bands = root.findall('.//wl_band_type/wlband')
-
-    f = open('wifi_radio_band.sql', 'w')
-
-    f.write(radioBandSqlHeader)
-
-    for p, platform in enumerate(platforms):
-        for wtpcap in wtpcaps:
-            if isCapTypeEqual(platform, wtpcap):
-                radios = list(wtpcap.iter('radio'))
-                for r, radio in enumerate(radios):
-                    for b, band in enumerate(bands):
-                        if isBandEqual(radio, band):
-                            last = (p == len(platforms) - 1) and (r ==
-                                                                  len(radios) - 1) and (b == len(bands) - 1)
-                            buildRadioBandRowSql(
-                                f, platform.attrib["captype"], radio.attrib["id"], b + 1, last)
-
-    f.write(sqlFooter)
-
-
 channelKeySqlHeader = """
 DROP TABLE IF EXISTS `wifi_channel_key`;
 
@@ -730,7 +706,6 @@ def main():
     run()
 
     # buildWifiChannelsSql()
-    # buildWifiRadioBandSql()
 
     cleanup()
 
