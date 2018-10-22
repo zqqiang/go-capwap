@@ -247,6 +247,7 @@ def buildWifiRadioSql(root, version, radios, radioKey, radioMap, radioBand, band
                 radios["rows"].append(r)
                 oid = radios['oid']
                 buildRadioRowSql(rf, oid, r, radios, bands)
+                buildRadioBandRowSql(rb, oid, r, bands, radioBand)
 
             koid = getRadioKeyOid(version, capType, radioKey)
             if 0 == koid:
@@ -258,9 +259,9 @@ def buildWifiRadioSql(root, version, radios, radioKey, radioMap, radioBand, band
                     version), capType, radioKey)
 
             radioMap['oid'] += 1
+            print("fos version: {0}, wtp: {1}, key oid: {2}, radio oid: {3}".format(
+                version, w.attrib, koid, oid))
             buildRadioMapRowSql(rm, koid, oid, radioMap)
-
-            buildRadioBandRowSql(rb, oid, r, bands, radioBand)
 
 
 fosPlatformSqlHeader = """
@@ -381,9 +382,14 @@ INSERT INTO `wifi_radio_band` VALUES
 """
 
 
+def isInBandMask(bn, mask):
+    maskList = mask.split(' ')
+    return bn in maskList
+
+
 def buildRadioBandRowSql(f, radioOid, radio, bands, radioBand):
     for bandOid, b in enumerate(bands):
-        if b.attrib['bn'] in radio.attrib['band_mask']:
+        if isInBandMask(b.attrib['bn'], radio.attrib['band_mask']):
             radioBand['oid'] += 1
             f.write("%s\n(%s, %s)" %
                     ('' if 1 == radioBand['oid'] else ',', radioOid, bandOid + 1))
@@ -589,12 +595,13 @@ def extractChanListXml(root, version):
 
 
 viewSql = """
-CREATE OR REPLACE VIEW `wifi_fos_platform_radio_band` AS
-    SELECT fosVersion, platformName, rb.radioOid, bandOid
+CREATE OR REPLACE VIEW `wifi_fos_platform_radio_band` AS 
+SELECT fosVersion, platformName, rm.radioOid, radioid, bandOid
     FROM wifi_radio_band rb
-        INNER JOIN wifi_radio_map rm ON rm.radioOid = rb.radioOid
-        INNER JOIN wifi_radio_key rk ON rk.oid = rm.radioKeyOid
-        INNER JOIN wifi_platforms p ON p.capType = rk.capType;
+    INNER JOIN wifi_radio_map rm ON rm.radioOid = rb.radioOid
+    INNER JOIN wifi_radio_key rk ON rk.oid = rm.radioKeyOid
+    INNER JOIN wifi_platforms p ON p.capType = rk.capType
+    INNER JOIN wifi_radios r ON r.oid = rm.radioOid;
 """
 
 
@@ -625,18 +632,23 @@ def run():
             continue
         if not dirs and files:
             version = folder.split('\\')[-1]
-            tree = ET.parse(join(folder, files[0]))
-            root = tree.getroot()
+            for f in files:
+                fxml = "FortiGate-60D-{0}".format(version)
+                if fxml not in f:
+                    continue
+                print("xml file: {0}".format(f))
+                tree = ET.parse(join(folder, f))
+                root = tree.getroot()
 
-            if not bands:
-                bands = buildWifiBandSql(root)
+                if not bands:
+                    bands = buildWifiBandSql(root)
 
-            croot = extractChanListXml(root, version)
-            buildWifiCountryAndChannelSql(
-                croot, version, countries, fosCountries, channelKey, channelMap)
-            buildWifiPlatformSql(root, version, platforms, fosPlatforms)
-            buildWifiRadioSql(root, version, radios,
-                              radioKey, radioMap, radioBand, bands)
+                croot = extractChanListXml(root, version)
+                buildWifiCountryAndChannelSql(
+                    croot, version, countries, fosCountries, channelKey, channelMap)
+                buildWifiPlatformSql(root, version, platforms, fosPlatforms)
+                buildWifiRadioSql(root, version, radios,
+                                  radioKey, radioMap, radioBand, bands)
 
     for folder, dirs, files in os.walk("."):
         if "." == folder:
