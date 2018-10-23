@@ -425,7 +425,8 @@ DROP TABLE IF EXISTS `wifi_channel_map`;
 
 CREATE TABLE `wifi_channel_map` (
   `channelKeyOid` int(11) NOT NULL COMMENT 'channel key oid',
-  `channel` char(8) NOT NULL COMMENT 'channel value'
+  `channel` char(8) NOT NULL COMMENT 'channel value',
+  INDEX `channelKeyOid` (`channelKeyOid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `wifi_channel_map` WRITE;
