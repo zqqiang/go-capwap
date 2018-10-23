@@ -347,7 +347,8 @@ CREATE TABLE `wifi_radio_key` (
   `oid` int(11) NOT NULL COMMENT 'radio key oid',
   `fosVersion` char(8) NOT NULL COMMENT 'fos version',
   `capType` int(11) NOT NULL COMMENT 'platform captype',
-  PRIMARY KEY (`oid`)
+  PRIMARY KEY (`oid`),
+  INDEX `fosVersion` (`fosVersion`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `wifi_radio_key` WRITE;
@@ -413,7 +414,8 @@ CREATE TABLE `wifi_channel_key` (
   `bn` char(6) NOT NULL COMMENT 'bn',
   `bonding` char(6) NOT NULL COMMENT 'bonding: none, all plus, minus, 80MHz',
   `outdoor` int(3) NOT NULL COMMENT 'outdoor: 0 disable, 1 enable',
-  PRIMARY KEY(`oid`)
+  PRIMARY KEY(`oid`),
+  INDEX `fosVersion` (`fosVersion`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `wifi_channel_key` WRITE;
@@ -474,7 +476,8 @@ DROP TABLE IF EXISTS `wifi_fos_countries`;
 
 CREATE TABLE `wifi_fos_countries` (
   `fosVersion` char(8) NOT NULL COMMENT 'fos version',
-  `countryOid` int(11) NOT NULL COMMENT 'country oid'
+  `countryOid` int(11) NOT NULL COMMENT 'country oid',
+  INDEX `fosVersion` (`fosVersion`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `wifi_fos_countries` WRITE;
