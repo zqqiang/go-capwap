@@ -259,8 +259,8 @@ def buildWifiRadioSql(root, version, radios, radioKey, radioMap, radioBand, band
                     version), capType, radioKey)
 
             radioMap['oid'] += 1
-            print("fos version: {0}, wtp: {1}, key oid: {2}, radio oid: {3}".format(
-                version, w.attrib, koid, oid))
+            # print("fos version: {0}, wtp: {1}, key oid: {2}, radio oid: {3}".format(
+                # version, w.attrib, koid, oid))
             buildRadioMapRowSql(rm, koid, oid, radioMap)
 
 
@@ -407,7 +407,7 @@ DROP TABLE IF EXISTS `wifi_channel_key`;
 CREATE TABLE `wifi_channel_key` (
   `oid` int(11) NOT NULL COMMENT 'key oid',
   `fosVersion` char(8) NOT NULL COMMENT 'fos version',
-  `country` int(11) NOT NULL COMMENT 'country code',
+  `countryIso` char(8) NOT NULL COMMENT 'country iso',
   `band` int(11) NOT NULL COMMENT '',
   `bn` char(6) NOT NULL COMMENT 'bn',
   `bonding` char(6) NOT NULL COMMENT 'bonding: none, all plus, minus, 80MHz',
@@ -487,7 +487,7 @@ def buildWifiFosCountryRow(f, fosVersion, countryOid, fosCountries):
             ('' if 1 == fosCountries['oid'] else ',', fosVersion, countryOid))
 
 
-def buildChannelKeyRow(f, fosVersion, countryOid, channel, channelKey):
+def buildChannelKeyRow(f, fosVersion, countryIso, channel, channelKey):
     channelKey['oid'] += 1
     if "bonding" in channel.attrib:
         channelLine = Template(
@@ -495,8 +495,8 @@ def buildChannelKeyRow(f, fosVersion, countryOid, channel, channelKey):
     else:
         channelLine = Template(
             "$band, '$bn', 'none', $outdoor").substitute(channel.attrib)
-    f.write("%s\n(%s,'%s',%s,%s)" % (
-        '' if 1 == channelKey['oid'] else ',', channelKey['oid'], fosVersion, countryOid, channelLine))
+    f.write("%s\n(%s,'%s','%s',%s)" % (
+        '' if 1 == channelKey['oid'] else ',', channelKey['oid'], fosVersion, countryIso, channelLine))
 
 
 def buildChannelMapRow(f, channelKeyOid, channel, channelMap):
@@ -548,9 +548,10 @@ def buildWifiCountryAndChannelSql(croot, version, countries, fosCountries, chann
             buildWifiFosCountryRow(
                 fo, formatVersion(version), countryOid, fosCountries)
             chs = list(country.iter('channel'))
+            countryIso = country.attrib["iso"]
             for c in chs:
                 buildChannelKeyRow(fck, formatVersion(
-                    version), countryOid, c, channelKey)
+                    version), countryIso, c, channelKey)
                 buildChannelMapRow(fcm, channelKey['oid'], c, channelMap)
 
 
@@ -636,7 +637,7 @@ def run():
                 fxml = "FortiGate-60D-{0}".format(version)
                 if fxml not in f:
                     continue
-                print("xml file: {0}".format(f))
+                # print("xml file: {0}".format(f))
                 tree = ET.parse(join(folder, f))
                 root = tree.getroot()
 
