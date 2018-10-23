@@ -116,7 +116,8 @@ CREATE TABLE `wifi_platforms` (
 `captype` int(11) NOT NULL COMMENT 'platform.captype',
 `platformName` char(6) DEFAULT NULL COMMENT 'platform.name',
 `display` char(16) DEFAULT NULL COMMENT 'platform.help',
-PRIMARY KEY (`oid`)
+PRIMARY KEY (`oid`),
+INDEX `captype` (`captype`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `wifi_platforms` WRITE;
