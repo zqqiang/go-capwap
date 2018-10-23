@@ -424,7 +424,7 @@ channelMapSqlHeader = """
 DROP TABLE IF EXISTS `wifi_channel_map`;
 
 CREATE TABLE `wifi_channel_map` (
-  `oid` int(11) NOT NULL COMMENT 'channel key oid',
+  `channelKeyOid` int(11) NOT NULL COMMENT 'channel key oid',
   `channel` char(8) NOT NULL COMMENT 'channel value'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
