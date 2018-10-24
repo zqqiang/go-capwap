@@ -116,7 +116,7 @@ CREATE TABLE `wifi_platforms` (
 `captype` int(11) NOT NULL COMMENT 'platform.captype',
 `platformName` char(6) DEFAULT NULL COMMENT 'platform.name',
 `display` char(16) DEFAULT NULL COMMENT 'platform.help',
-`snName` char(16) DEFAULT NULL COMMENT 'serial number start name',
+`snPrefix` char(16) DEFAULT NULL COMMENT 'serial number prefix',
 `defaultProfileName` char(16) DEFAULT NULL COMMENT 'default profile name',
 PRIMARY KEY (`oid`),
 INDEX `captype` (`captype`)
