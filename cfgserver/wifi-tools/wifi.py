@@ -116,6 +116,8 @@ CREATE TABLE `wifi_platforms` (
 `captype` int(11) NOT NULL COMMENT 'platform.captype',
 `platformName` char(6) DEFAULT NULL COMMENT 'platform.name',
 `display` char(16) DEFAULT NULL COMMENT 'platform.help',
+`snName` char(16) DEFAULT NULL COMMENT 'serial number start name',
+`defaultProfileName` char(16) DEFAULT NULL COMMENT 'default profile name',
 PRIMARY KEY (`oid`),
 INDEX `captype` (`captype`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -126,12 +128,12 @@ INSERT INTO `wifi_platforms` VALUES
 """
 
 
-def buildPlatformRowSql(f, oid, platform, platforms):
+def buildPlatformRowSql(f, oid, platform, platforms, wtp, wtpProfile):
     platformLine = Template("$captype,'$name'").substitute(
         platform.attrib)
     help = platform.attrib['help'].rstrip('.')
-    f.write("%s\n(%d, %s, '%s')" %
-            ('' if 1 == platforms['oid'] else ',', oid, platformLine, help))
+    f.write("%s\n(%d, %s, '%s', '%s', '%s')" %
+            ('' if 1 == platforms['oid'] else ',', oid, platformLine, help, wtp.attrib["name"], wtpProfile.attrib["name"]))
 
 
 def isCapTypeEqual(platform, wtpcap):
@@ -154,7 +156,7 @@ def buildWifiFosPlatformRow(f, fosVersion, platformOid, fosPlatforms):
 
 def buildWifiPlatformSql(root, version, platforms, fosPlatforms):
     p = root.findall('.//cw_platform_type/platform')
-
+    
     if 0 == platforms['oid']:
         f = open('wifi_platforms.sql', 'w')
         f.write(platformSqlHeader)
@@ -170,7 +172,10 @@ def buildWifiPlatformSql(root, version, platforms, fosPlatforms):
             platforms['oid'] += 1
             platforms['rows'].append(platform)
             oid = platforms['oid']
-            buildPlatformRowSql(f, oid, platform, platforms)
+            wtp = root.find('.//cw_wtp_name/wtp[@captype="{0}"]'.format(platform.attrib["captype"]))
+            wtpProfile = root.find(
+                './/cw_wtpprof_name/wtpprof[@captype="{0}"]'.format(platform.attrib["captype"]))
+            buildPlatformRowSql(f, oid, platform, platforms, wtp, wtpProfile)
         buildWifiFosPlatformRow(fo, formatVersion(version), oid, fosPlatforms)
 
 
