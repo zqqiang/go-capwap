@@ -1,6 +1,7 @@
 import sys
 import getopt
 import os
+import re
 from os.path import join
 from string import Template
 import mysql.connector
@@ -433,7 +434,7 @@ DROP TABLE IF EXISTS `wifi_channel_map`;
 
 CREATE TABLE `wifi_channel_map` (
   `channelKeyOid` int(11) NOT NULL COMMENT 'channel key oid',
-  `channel` char(8) NOT NULL COMMENT 'channel value',
+  `channelNumber` int(8) NOT NULL COMMENT 'channel number',
   INDEX `channelKeyOid` (`channelKeyOid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -508,8 +509,14 @@ def buildChannelKeyRow(f, fosVersion, countryIso, channel, channelKey):
     f.write("%s\n(%s,'%s','%s',%s)" % (
         '' if 1 == channelKey['oid'] else ',', channelKey['oid'], fosVersion, countryIso, channelLine))
 
+def isNoAccess(countryIso, channelNumber):
+    if countryIso in ['US', 'CA', 'PS']:
+        if channelNumber in ['120', '124', '128']:
+            return True
+    return False
 
-def buildChannelMapRow(f, channelKeyOid, channel, channelMap):
+
+def buildChannelMapRow(f, channelKeyOid, channel, channelMap, countryIso):
     if channel.text != None:
         channels = channel.text
     else:
@@ -517,7 +524,8 @@ def buildChannelMapRow(f, channelKeyOid, channel, channelMap):
 
     clist = channels.split(',')
     for cv in clist:
-        if cv:
+        channelNumber = re.sub('[\+\-\*]', '', cv)
+        if channelNumber and not isNoAccess(countryIso, channelNumber):
             channelMap['oid'] += 1
             f.write("%s\n(%d, '%s')" %
                     ('' if 1 == channelMap['oid'] else ',', channelKeyOid, cv))
@@ -562,7 +570,8 @@ def buildWifiCountryAndChannelSql(croot, version, countries, fosCountries, chann
             for c in chs:
                 buildChannelKeyRow(fck, formatVersion(
                     version), countryIso, c, channelKey)
-                buildChannelMapRow(fcm, channelKey['oid'], c, channelMap)
+                buildChannelMapRow(
+                    fcm, channelKey['oid'], c, channelMap, country.attrib['iso'])
 
 
 def runSql(host, username, password, database):
