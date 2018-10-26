@@ -118,7 +118,7 @@ CREATE TABLE `wifi_platforms` (
 `platformName` char(6) DEFAULT NULL COMMENT 'platform.name',
 `display` char(16) DEFAULT NULL COMMENT 'platform.help',
 `snPrefix` char(16) DEFAULT NULL COMMENT 'serial number prefix',
-`defaultProfileName` char(16) DEFAULT NULL COMMENT 'default profile name',
+`defaultProfileName` char(32) DEFAULT NULL COMMENT 'default profile name',
 PRIMARY KEY (`oid`),
 INDEX `captype` (`captype`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -629,6 +629,65 @@ def buildView():
     f = open('wifi_view.sql', 'w')
     f.write(viewSql)
 
+dfsSql = """
+DROP TABLE IF EXISTS `wifi_dfs`;
+
+CREATE TABLE `wifi_dfs` (
+  `fosVersion` char(8) NOT NULL COMMENT 'fos version',
+  `countryIso` char(8) NOT NULL COMMENT 'country iso',
+  `snPrefix` char(8) NOT NULL COMMENT 'ap sn prefix',
+  INDEX `versionIsoPrefixIndex` (`fosVersion`,`countryIso`,`snPrefix`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+LOCK TABLES `wifi_dfs` WRITE;
+
+INSERT INTO `wifi_dfs` VALUES
+"""
+
+def buildDfsMap():
+    cfile = open("wlchanlist.c", 'r')
+    start = False
+    osVersion = 0
+    mrVersion = 0
+    dfsOid = 0
+
+    sfile = open('wifi_dfs.sql', 'w')
+    sfile.write(dfsSql)
+
+    for line in cfile.readlines():
+        if not start:
+            if "static const FTNT_REGCODE_MAPPING ftntRegcodePairs" in line:
+                start = True
+        elif start and "};" in line:
+            start = False
+        else:
+            if '[DVM_OS_VER_5] = {' in line:
+                osVersion = 5
+            elif '[DVM_OS_VER_6] = {' in line:
+                osVersion = 6
+            elif '[0] = {' in line:
+                mrVersion = 0
+            elif '[2] = {' in line:
+                mrVersion = 2
+            elif '[4] = {' in line:
+                mrVersion = 4
+            elif '[6] = {' in line:
+                mrVersion = 6
+            else:
+                row = line.strip()
+                if row.startswith('/*') or '{ NULL },' == row or '},' == row:
+                    continue
+                row = row.lstrip('{')
+                row = row.rstrip('},')
+                rowList = row.split(',')
+                countryIso = rowList[2].strip().strip('"')
+                dfs = rowList[3].strip()
+                platforms = rowList[4].strip().strip('"').split(" ")
+                if dfs == '1':
+                    for platform in platforms:
+                        dfsOid += 1
+                        sfile.write("%s\n('%s.%s.0', '%s','%s')" % ('' if dfsOid == 1 else ',', osVersion, mrVersion, countryIso, platform))
+
 
 def run():
     path = "D:\\Workspaces\\svn\\fos_mgmt_data"
@@ -669,6 +728,8 @@ def run():
                 buildWifiPlatformSql(root, version, platforms, fosPlatforms)
                 buildWifiRadioSql(root, version, radios,
                                   radioKey, radioMap, radioBand, bands)
+
+    buildDfsMap()
 
     for folder, dirs, files in os.walk("."):
         if "." == folder:
