@@ -88,7 +88,9 @@ def formatVersion(version):
 
 def isSameXmlDictionary(left, right):
     for k, v in left.items():
-        if not (right.attrib[k] == v):
+        v = v.rstrip('.')
+        rv = right.attrib[k].rstrip('.')
+        if not (rv == v):
             return False
     return True
 
@@ -114,13 +116,12 @@ DROP TABLE IF EXISTS `wifi_platforms`;
 
 CREATE TABLE `wifi_platforms` (
 `oid` int(11) NOT NULL COMMENT 'platform oid',
-`captype` int(11) NOT NULL COMMENT 'platform.captype',
 `platformName` char(6) DEFAULT NULL COMMENT 'platform.name',
 `display` char(16) DEFAULT NULL COMMENT 'platform.help',
 `snPrefix` char(16) DEFAULT NULL COMMENT 'serial number prefix',
 `defaultProfileName` char(32) DEFAULT NULL COMMENT 'default profile name',
 PRIMARY KEY (`oid`),
-INDEX `captype` (`captype`)
+INDEX `platformName` (`platformName`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `wifi_platforms` WRITE;
@@ -130,20 +131,15 @@ INSERT INTO `wifi_platforms` VALUES
 
 
 def buildPlatformRowSql(f, oid, platform, platforms, wtp, wtpProfile):
-    platformLine = Template("$captype,'$name'").substitute(
+    platformLine = Template("'$name'").substitute(
         platform.attrib)
     help = platform.attrib['help'].rstrip('.')
     f.write("%s\n(%d, %s, '%s', '%s', '%s')" %
             ('' if 1 == platforms['oid'] else ',', oid, platformLine, help, wtp.attrib["name"], wtpProfile.attrib["name"]))
 
-
-def isCapTypeEqual(platform, wtpcap):
-    return wtpcap.attrib['captype'] == platform.attrib['captype']
-
-
 def getPlatformOid(platform, platforms):
     for oid, p in enumerate(platforms['rows']):
-        if platform.attrib['captype'] == p.attrib["captype"]:
+        if platform.attrib['name'] == p.attrib["name"]:
             if isSameXmlDictionary(p, platform):
                 return oid + 1
     return 0
@@ -187,9 +183,9 @@ def getRadioOid(radio, radios):
     return 0
 
 
-def getRadioKeyOid(version, capType, radioKey):
+def getRadioKeyOid(version, name, radioKey):
     for oid, rk in enumerate(radioKey['rows']):
-        if isSamePureDictionary(rk, {'fosVersion': version, 'capType': capType}):
+        if isSamePureDictionary(rk, {'fosVersion': version, 'name': name}):
             return oid + 1
     return 0
 
@@ -208,9 +204,9 @@ def buildRadioRowSql(f, oid, radio, radios, bands):
             ('' if 1 == radios['oid'] else ',', oid, radioLine, defaultBand))
 
 
-def buildRadioKeyRowSql(f, koid, version, capType, radioKey):
+def buildRadioKeyRowSql(f, koid, version, name, radioKey):
     f.write("%s\n(%d, '%s', '%s')" %
-            ('' if 1 == radioKey['oid'] else ',', koid, version, capType))
+            ('' if 1 == radioKey['oid'] else ',', koid, version, name))
 
 
 def buildRadioMapRowSql(f, koid, oid, radioMap):
@@ -221,7 +217,7 @@ def buildRadioMapRowSql(f, koid, oid, radioMap):
 def buildWifiRadioSql(root, version, radios, radioKey, radioMap, radioBand, bands):
     wtpcaps = root.findall('.//cw_wtp_cap/wtpcap')
     for w in wtpcaps:
-        capType = w.attrib["captype"]
+        name = w.attrib["name"]
         rs = list(w.iter('radio'))
         for r in rs:
             if 0 == radios["oid"]:
@@ -256,14 +252,14 @@ def buildWifiRadioSql(root, version, radios, radioKey, radioMap, radioBand, band
                 buildRadioRowSql(rf, oid, r, radios, bands)
                 buildRadioBandRowSql(rb, oid, r, bands, radioBand)
 
-            koid = getRadioKeyOid(version, capType, radioKey)
+            koid = getRadioKeyOid(version, name, radioKey)
             if 0 == koid:
                 radioKey['oid'] += 1
                 radioKey['rows'].append(
-                    {'fosVersion': version, 'capType': capType})
+                    {'fosVersion': version, 'name': name})
                 koid = radioKey['oid']
                 buildRadioKeyRowSql(rk, koid, formatVersion(
-                    version), capType, radioKey)
+                    version), name, radioKey)
 
             radioMap['oid'] += 1
             # print("fos version: {0}, wtp: {1}, key oid: {2}, radio oid: {3}".format(
@@ -352,7 +348,7 @@ DROP TABLE IF EXISTS `wifi_radio_key`;
 CREATE TABLE `wifi_radio_key` (
   `oid` int(11) NOT NULL COMMENT 'radio key oid',
   `fosVersion` char(8) NOT NULL COMMENT 'fos version',
-  `capType` int(11) NOT NULL COMMENT 'platform captype',
+  `apPlatformName` char(6) NOT NULL COMMENT 'ap platform name',
   PRIMARY KEY (`oid`),
   INDEX `fosVersion` (`fosVersion`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -620,7 +616,7 @@ SELECT fosVersion, platformName, rm.radioOid, radioid, bandOid
     FROM wifi_radio_band rb
     INNER JOIN wifi_radio_map rm ON rm.radioOid = rb.radioOid
     INNER JOIN wifi_radio_key rk ON rk.oid = rm.radioKeyOid
-    INNER JOIN wifi_platforms p ON p.capType = rk.capType
+    INNER JOIN wifi_platforms p ON p.platformName = rk.apPlatformName
     INNER JOIN wifi_radios r ON r.oid = rm.radioOid;
 """
 
