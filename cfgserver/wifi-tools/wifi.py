@@ -617,6 +617,14 @@ SELECT fosVersion, platformName, rm.radioOid, radioid, bandOid
     INNER JOIN wifi_radio_key rk ON rk.oid = rm.radioKeyOid
     INNER JOIN wifi_platforms p ON p.platformName = rk.apPlatformName
     INNER JOIN wifi_radios r ON r.oid = rm.radioOid;
+
+CREATE OR REPLACE
+    ALGORITHM = UNDEFINED 
+    DEFINER = `forticrm`@`%` 
+    SQL SECURITY DEFINER 
+VIEW `wifi_dfs_enabled` AS 
+SELECT `d`.`fosVersion` AS `fosVersion`, `d`.`countryIso` AS `countryIso`, `d`.`snPrefix` AS `snPrefix`, `p`.`platformName` AS `platformName`
+    FROM (`wifi_dfs` `d` JOIN `wifi_platforms` `p` ON ((`p`.`snPrefix` = `d`.`snPrefix`)));
 """
 
 
