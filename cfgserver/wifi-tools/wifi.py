@@ -139,9 +139,8 @@ def buildPlatformRowSql(f, oid, platform, platforms, wtp, wtpProfile):
 
 def getPlatformOid(platform, platforms):
     for oid, p in enumerate(platforms['rows']):
-        if platform.attrib['name'] == p.attrib["name"]:
-            if isSameXmlDictionary(p, platform):
-                return oid + 1
+        if platform.attrib['name'] == p.attrib["name"] and platform.attrib["help"].rstrip(".") == p.attrib["help"].rstrip("."):
+            return oid + 1
     return 0
 
 
@@ -681,6 +680,8 @@ def buildDfsMap():
                 platforms = rowList[4].strip().strip('"').split(" ")
                 if dfs == '1':
                     for platform in platforms:
+                        if 'FWF' in platform:
+                            continue
                         dfsOid += 1
                         sfile.write("%s\n('%s.%s.0', '%s','%s')" % ('' if dfsOid == 1 else ',', osVersion, mrVersion, countryIso, platform))
 
