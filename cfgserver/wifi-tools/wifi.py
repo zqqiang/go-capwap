@@ -144,10 +144,10 @@ def getPlatformOid(platform, platforms):
     return 0
 
 
-def buildWifiFosPlatformRow(f, fosVersion, platformOid, fosPlatforms):
+def buildWifiFosPlatformRow(f, fosVersion, platformOid, fosPlatforms, wtpCap):
     fosPlatforms['oid'] += 1
-    f.write("%s\n('%s', %s)" %
-            ('' if 1 == fosPlatforms['oid'] else ',', fosVersion, platformOid))
+    f.write("%s\n('%s', %s, %s, %s)" %
+            ('' if 1 == fosPlatforms['oid'] else ',', fosVersion, platformOid, wtpCap.attrib['wan_lan'], wtpCap.attrib['max_lan']))
 
 
 def buildWifiPlatformSql(root, version, platforms, fosPlatforms):
@@ -172,7 +172,8 @@ def buildWifiPlatformSql(root, version, platforms, fosPlatforms):
             wtpProfile = root.find(
                 './/cw_wtpprof_name/wtpprof[@captype="{0}"]'.format(platform.attrib["captype"]))
             buildPlatformRowSql(f, oid, platform, platforms, wtp, wtpProfile)
-        buildWifiFosPlatformRow(fo, formatVersion(version), oid, fosPlatforms)
+        wtpCap = root.find('.//cw_wtp_cap/wtpcap[@captype="{0}"]'.format(platform.attrib["captype"]))
+        buildWifiFosPlatformRow(fo, formatVersion(version), oid, fosPlatforms, wtpCap)
 
 
 def getRadioOid(radio, radios):
@@ -271,7 +272,9 @@ DROP TABLE IF EXISTS `wifi_fos_platforms`;
 
 CREATE TABLE `wifi_fos_platforms` (
 `fosVersion` char(8) NOT NULL COMMENT 'fos version',
-`platformOid` int(11) NOT NULL COMMENT 'platform oid'
+`platformOid` int(11) NOT NULL COMMENT 'platform oid',
+`wanLan` int(8) NOT NULL COMMENT 'xml wtpcap wan_lan',
+`maxLan` int(8) NOT NULL COMMENT 'xml wtpcap max_lan'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `wifi_fos_platforms` WRITE;
