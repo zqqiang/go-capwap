@@ -146,8 +146,8 @@ def getPlatformOid(platform, platforms):
 
 def buildWifiFosPlatformRow(f, fosVersion, platformOid, fosPlatforms, wtpCap):
     fosPlatforms['oid'] += 1
-    f.write("%s\n('%s', %s, %s, %s)" %
-            ('' if 1 == fosPlatforms['oid'] else ',', fosVersion, platformOid, wtpCap.attrib['wan_lan'], wtpCap.attrib['max_lan']))
+    f.write("%s\n('%s', %s, %s, %s, %s)" %
+            ('' if 1 == fosPlatforms['oid'] else ',', fosVersion, platformOid, wtpCap.attrib['max_vaps'], wtpCap.attrib['wan_lan'], wtpCap.attrib['max_lan']))
 
 
 def buildWifiPlatformSql(root, version, platforms, fosPlatforms):
@@ -273,6 +273,7 @@ DROP TABLE IF EXISTS `wifi_fos_platforms`;
 CREATE TABLE `wifi_fos_platforms` (
 `fosVersion` char(8) NOT NULL COMMENT 'fos version',
 `platformOid` int(11) NOT NULL COMMENT 'platform oid',
+`maxVaps` int(8) NOT NULL COMMENT 'xml wtpcap max_vaps',
 `wanLan` int(8) NOT NULL COMMENT 'xml wtpcap wan_lan',
 `maxLan` int(8) NOT NULL COMMENT 'xml wtpcap max_lan'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
