@@ -702,7 +702,7 @@ def buildDfsMap():
 
 
 def run():
-    path = "D:\\Workspaces\\svn\\fos_mgmt_data"
+    path = "D:\\Workspaces\\svn\\fos_mgmt_wifi_data"
     bands = None
     countries = {'oid': 0, 'rows': []}
     fosCountries = {'oid': 0}
