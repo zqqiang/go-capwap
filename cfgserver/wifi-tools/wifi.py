@@ -723,24 +723,20 @@ def run():
             continue
         if not dirs and files:
             version = folder.split('\\')[-1]
-            for f in files:
-                if "FortiGate-60D-" not in f:
-                    continue
-                if "POE" in f:
-                    continue
-                # print("xml file: {0}".format(f))
-                tree = ET.parse(join(folder, f))
-                root = tree.getroot()
+            f = files[0]
+            # print("xml file: {0}".format(f))
+            tree = ET.parse(join(folder, f))
+            root = tree.getroot()
 
-                if not bands:
-                    bands = buildWifiBandSql(root)
+            if not bands:
+                bands = buildWifiBandSql(root)
 
-                croot = extractChanListXml(root, version)
-                buildWifiCountryAndChannelSql(
-                    croot, version, countries, fosCountries, channelKey, channelMap)
-                buildWifiPlatformSql(root, version, platforms, fosPlatforms)
-                buildWifiRadioSql(root, version, radios,
-                                  radioKey, radioMap, radioBand, bands)
+            croot = extractChanListXml(root, version)
+            buildWifiCountryAndChannelSql(
+                croot, version, countries, fosCountries, channelKey, channelMap)
+            buildWifiPlatformSql(root, version, platforms, fosPlatforms)
+            buildWifiRadioSql(root, version, radios,
+                                radioKey, radioMap, radioBand, bands)
 
     buildDfsMap()
 
