@@ -163,6 +163,9 @@ def buildWifiPlatformSql(root, version, platforms, fosPlatforms):
         fo = open('wifi_fos_platforms.sql', 'a')
 
     for i, platform in enumerate(p):
+        # C Platform is stop support in fos
+        if platform.attrib["name"] in ["C220C", "C225C", "C23JD", "C24JE"]:
+            continue
         oid = getPlatformOid(platform, platforms)
         if 0 == oid:
             platforms['oid'] += 1
@@ -721,8 +724,9 @@ def run():
         if not dirs and files:
             version = folder.split('\\')[-1]
             for f in files:
-                fxml = "FortiGate-60D-{0}".format(version)
-                if fxml not in f:
+                if "FortiGate-60D-" not in f:
+                    continue
+                if "POE" in f:
                     continue
                 # print("xml file: {0}".format(f))
                 tree = ET.parse(join(folder, f))
