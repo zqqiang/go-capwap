@@ -700,6 +700,74 @@ def buildDfsMap():
                         dfsOid += 1
                         sfile.write("%s\n('%s.%s.0', '%s','%s')" % ('' if dfsOid == 1 else ',', osVersion, mrVersion, countryIso, platform))
 
+fosVersionSql="""
+DROP TABLE IF EXISTS `wifi_fos_version`;
+
+CREATE TABLE `wifi_fos_version` (
+  `deviceVersion` char(8) NOT NULL COMMENT 'device version',
+  `fosVersion` char(8) NOT NULL COMMENT 'fos xml version',
+  INDEX `deviceFosVersionIndex` (`deviceVersion`,`fosVersion`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+LOCK TABLES `wifi_fos_version` WRITE;
+
+INSERT INTO `wifi_fos_version` VALUES
+('6.0.3', '6.0.2'),
+('6.0.2', '6.0.2'),
+('6.0.1', '6.0.0'),
+('6.0.0', '6.0.0'),
+('5.6.6', '5.6.3'),
+('5.6.5', '5.6.3'),
+('5.6.4', '5.6.3'),
+('5.6.3', '5.6.3'),
+('5.6.2', '5.6.1'),
+('5.6.1', '5.6.1'),
+('5.6.0', '5.6.0'),
+('5.4.10', '5.4.1'),
+('5.4.9', '5.4.1'),
+('5.4.8', '5.4.1'),
+('5.4.7', '5.4.1'),
+('5.4.6', '5.4.1'),
+('5.4.5', '5.4.1'),
+('5.4.4', '5.4.1'),
+('5.4.3', '5.4.1'),
+('5.4.2', '5.4.1'),
+('5.4.1', '5.4.1'),
+('5.4.0', '5.4.0'),
+('5.2.13', '5.2.1'),
+('5.2.12', '5.2.1'),
+('5.2.11', '5.2.1'),
+('5.2.10', '5.2.1'),
+('5.2.9', '5.2.1'),
+('5.2.8', '5.2.1'),
+('5.2.7', '5.2.1'),
+('5.2.6', '5.2.1'),
+('5.2.5', '5.2.1'),
+('5.2.4', '5.2.1'),
+('5.2.3', '5.2.1'),
+('5.2.2', '5.2.1'),
+('5.2.1', '5.2.1'),
+('5.2.0', '5.2.0'),
+('5.0.14', '5.0.1'),
+('5.0.13', '5.0.1'),
+('5.0.12', '5.0.1'),
+('5.0.11', '5.0.1'),
+('5.0.10', '5.0.1'),
+('5.0.9', '5.0.1'),
+('5.0.8', '5.0.1'),
+('5.0.7', '5.0.1'),
+('5.0.6', '5.0.1'),
+('5.0.5', '5.0.1'),
+('5.0.4', '5.0.1'),
+('5.0.3', '5.0.1'),
+('5.0.2', '5.0.1'),
+('5.0.1', '5.0.1'),
+('5.0.0', '5.0.0')
+"""
+
+def buildFosVersionMap():
+    sfile = open('wifi_fos_verion.sql', 'w')
+    sfile.write(fosVersionSql)
 
 def run():
     path = "D:\\Workspaces\\svn\\fos_mgmt_wifi_data"
@@ -739,6 +807,7 @@ def run():
                                 radioKey, radioMap, radioBand, bands)
 
     buildDfsMap()
+    buildFosVersionMap()
 
     for folder, dirs, files in os.walk("."):
         if "." == folder:
