@@ -1,18 +1,38 @@
 import React, { Component } from "react";
+import { Switch, Route, withRouter } from "react-router-dom";
+
 import TopNavigation from "./components/topNavigation.js";
 import Routes from "../src/components/Routes";
 
-class App extends Component {
-  render() {
-    return (
-      <div className="flexible-content">
-        <TopNavigation />
-        <main id="content" className="p-5">
-          <Routes />
-        </main>
-      </div>
-    );
-  }
-}
+import Login from "./components/pages/Login";
+import { observer, inject } from "mobx-react";
 
-export default App;
+import PrivateRoute from "./components/PrivateRoute";
+import Home from "./components/Home";
+
+export default inject("commonStore")(
+  withRouter(
+    observer(
+      class App extends Component {
+        componentWillMount() {
+          if (!this.props.commonStore.token) {
+            this.props.commonStore.setAppLoaded();
+          }
+        }
+        componentDidMount() {
+          if (this.props.commonStore.token) {
+            // todo
+          }
+        }
+        render() {
+          return (
+            <Switch>
+              <Route path="/pages/login" exact component={Login} />
+              <PrivateRoute path="/" commponent={Home} />
+            </Switch>
+          );
+        }
+      }
+    )
+  )
+);

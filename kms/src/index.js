@@ -1,7 +1,8 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import "./index.css";
+import { Provider } from "mobx-react";
 
+import "./index.css";
 import "font-awesome/css/font-awesome.min.css";
 import "bootstrap-css-only/css/bootstrap.min.css";
 import "mdbreact/dist/css/mdb.css";
@@ -10,10 +11,22 @@ import App from "./App";
 import * as serviceWorker from "./serviceWorker";
 import { BrowserRouter as Router } from "react-router-dom";
 
+import commonStore from "./stores/commonStore";
+import userStore from "./stores/userStore";
+import authStore from "./stores/authStore";
+
+const stores = {
+  commonStore,
+  userStore,
+  authStore
+};
+
 ReactDOM.render(
-  <Router>
-    <App />
-  </Router>,
+  <Provider {...stores}>
+    <Router>
+      <App />
+    </Router>
+  </Provider>,
   document.getElementById("root")
 );
 

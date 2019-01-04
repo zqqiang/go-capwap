@@ -1,0 +1,39 @@
+#landing {
+  background-color: #fff;
+}
+
+#landing .navbar.scrolling-navbar.top-nav-collapse {
+  background-color: #9da4b1 !important;
+}
+
+#landing #home .view {
+  background: url("https://mdbootstrap.com/img/Photos/Others/img%20(42).jpg")
+    no-repeat center center;
+  background-size: cover;
+  height: 100vh;
+}
+
+#landing .rgba-gradient {
+  background: -webkit-linear-gradient(
+    45deg,
+    rgba(83, 125, 210, 0.4),
+    rgba(178, 30, 123, 0.4) 100%
+  );
+}
+
+#landing h6 {
+  line-height: 1.7;
+}
+
+#landing .card {
+  background-color: rgba(229, 228, 255, 0.2);
+}
+
+#landing .avatar {
+  max-width: 150px;
+  height: auto;
+}
+
+#landing footer.page-footer {
+  background-color: #9da4b1;
+}
