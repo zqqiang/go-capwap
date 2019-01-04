@@ -21,6 +21,8 @@ export default inject("authStore")(
     observer(
       class Login extends React.Component {
         handleEmailChange = e => this.props.authStore.setEmail(e.target.value);
+        handlePasswordChange = e =>
+          this.props.authStore.setPassword(e.target.value);
         handleSubmitForm = e => {
           e.preventDefault();
           this.props.authStore.login().then(() => {
@@ -102,6 +104,8 @@ export default inject("authStore")(
                                 type="password"
                                 labelClass="white-text"
                                 iconClass="white-text"
+                                value={values.password}
+                                onChange={this.handlePasswordChange}
                                 onKeyPress={this.handleKeyPress}
                               />
 

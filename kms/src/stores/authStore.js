@@ -16,6 +16,10 @@ class AuthStore {
     this.values.email = email;
   }
 
+  setPassword(password) {
+    this.values.password = password;
+  }
+
   login() {
     this.inProgress = true;
     this.errors = undefined;
@@ -42,6 +46,7 @@ decorate(AuthStore, {
   errors: observable,
   values: observable,
   setEmail: action,
+  setPassword: action,
   login: action
 });
 

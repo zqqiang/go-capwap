@@ -2,7 +2,7 @@ import React from "react";
 import { inject, observer } from "mobx-react";
 import { Route, Redirect } from "react-router-dom";
 
-export default inject("userStore")(
+export default inject("userStore", "commonStore")(
   observer(
     class PrivateRoute extends React.Component {
       render() {

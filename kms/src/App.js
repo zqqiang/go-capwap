@@ -10,7 +10,7 @@ import { observer, inject } from "mobx-react";
 import PrivateRoute from "./components/PrivateRoute";
 import Home from "./components/Home";
 
-export default inject("commonStore")(
+export default inject("commonStore", "userStore")(
   withRouter(
     observer(
       class App extends Component {
@@ -21,16 +21,21 @@ export default inject("commonStore")(
         }
         componentDidMount() {
           if (this.props.commonStore.token) {
-            // todo
+            this.props.userStore
+              .pullUser()
+              .finally(() => this.props.commonStore.setAppLoaded());
           }
         }
         render() {
-          return (
-            <Switch>
-              <Route path="/pages/login" exact component={Login} />
-              <PrivateRoute path="/" commponent={Home} />
-            </Switch>
-          );
+          if (this.props.commonStore.appLoaded) {
+            return (
+              <Switch>
+                <Route path="/pages/login" exact component={Login} />
+                <PrivateRoute path="/" component={Home} />
+              </Switch>
+            );
+          }
+          return <div>App loading...</div>;
         }
       }
     )
