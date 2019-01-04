@@ -7,11 +7,7 @@ import {
   Collapse,
   NavItem,
   NavLink,
-  Fa,
-  Dropdown,
-  DropdownToggle,
-  DropdownMenu,
-  DropdownItem
+  Fa
 } from "mdbreact";
 
 class TopNavigation extends Component {
