@@ -11,7 +11,7 @@ import {
   MDBBadge
 } from "mdbreact";
 
-import { Switch, Route, withRouter } from "react-router-dom";
+import { withRouter } from "react-router-dom";
 import { observer, inject } from "mobx-react";
 
 export default inject("userStore", "authStore")(
@@ -65,10 +65,7 @@ export default inject("userStore", "authStore")(
                     <span className="d-none d-md-inline">User</span>
                   </MDBDropdownToggle>
                   <MDBDropdownMenu right style={{ minWidth: "200px" }}>
-                    <MDBDropdownItem
-                      href="javascript:void(0);"
-                      onClick={this.handleClickLogout}
-                    >
+                    <MDBDropdownItem onClick={this.handleClickLogout}>
                       Log Out
                     </MDBDropdownItem>
                   </MDBDropdownMenu>

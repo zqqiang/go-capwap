@@ -36,7 +36,7 @@ export default inject("authStore")(
         };
 
         render() {
-          const { values, errors, inProgress } = this.props.authStore;
+          const { values, errors } = this.props.authStore;
 
           return (
             <div id="landing">
