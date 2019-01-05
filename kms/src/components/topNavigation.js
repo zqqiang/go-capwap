@@ -1,68 +1,83 @@
-import React, { Component } from "react";
+import React from "react";
 import {
-  Navbar,
-  NavbarBrand,
-  NavbarNav,
-  NavbarToggler,
-  Collapse,
-  NavItem,
-  NavLink,
-  Fa
+  MDBNavbar,
+  MDBNavbarBrand,
+  MDBNavbarNav,
+  MDBIcon,
+  MDBDropdown,
+  MDBDropdownToggle,
+  MDBDropdownMenu,
+  MDBDropdownItem,
+  MDBBadge
 } from "mdbreact";
 
-class TopNavigation extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      collapse: false
-    };
-    this.onClick = this.onClick.bind(this);
-    this.toggle = this.toggle.bind(this);
-  }
+import { Switch, Route, withRouter } from "react-router-dom";
+import { observer, inject } from "mobx-react";
 
-  onClick() {
-    this.setState({
-      collapse: !this.state.collapse
-    });
-  }
-
-  toggle() {
-    this.setState({
-      dropdownOpen: !this.state.dropdownOpen
-    });
-  }
-
-  render() {
-    return (
-      <Navbar color="info-color" dark expand="md" scrolling>
-        <NavbarBrand href="/">
-          <strong>KMS</strong>
-        </NavbarBrand>
-        <NavbarToggler onClick={this.onClick} />
-        <Collapse isOpen={this.state.collapse} navbar>
-          <NavbarNav left>
-            <NavItem>
-              <NavLink to="/">Home</NavLink>
-            </NavItem>
-          </NavbarNav>
-          <NavbarNav right>
-            <NavItem>
-              <NavLink className="waves-effect waves-light" to="/Settings">
-                <Fa icon="gear" className="mr-1" />
-                Settings
-              </NavLink>
-            </NavItem>
-            <NavItem>
-              <NavLink className="waves-effect waves-light" to="/Profile">
-                <Fa icon="user" className="mr-1" />
-                Profile
-              </NavLink>
-            </NavItem>
-          </NavbarNav>
-        </Collapse>
-      </Navbar>
-    );
-  }
-}
-
-export default TopNavigation;
+export default inject("userStore", "authStore")(
+  withRouter(
+    observer(
+      class TopNavigation extends React.Component {
+        handleClickLogout = () => {
+          this.props.authStore
+            .logout()
+            .then(() => this.props.history.replace("/"));
+        };
+        render() {
+          const navStyle = {
+            paddingLeft: "16px",
+            transition: "padding-left .3s"
+          };
+          return (
+            <MDBNavbar
+              className="flexible-MDBNavbar"
+              light
+              expand="md"
+              scrolling
+              fixed="top"
+              style={{ zIndex: 3 }}
+            >
+              <MDBNavbarBrand href="/" style={navStyle}>
+                <strong>KMS</strong>
+              </MDBNavbarBrand>
+              <MDBNavbarNav expand="sm" right style={{ flexDirection: "row" }}>
+                <MDBDropdown>
+                  <MDBDropdownToggle nav caret>
+                    <MDBBadge color="red" className="mr-2">
+                      1
+                    </MDBBadge>
+                    <MDBIcon icon="bell" />{" "}
+                    <span className="d-none d-md-inline">Notifications</span>
+                  </MDBDropdownToggle>
+                  <MDBDropdownMenu right style={{ minWidth: "400px" }}>
+                    <MDBDropdownItem href="#!">
+                      <MDBIcon icon="user-secret" className="mr-2" />
+                      token create
+                      <span className="float-right">
+                        <MDBIcon icon="clock-o" /> 13 min
+                      </span>
+                    </MDBDropdownItem>
+                  </MDBDropdownMenu>
+                </MDBDropdown>
+                <MDBDropdown>
+                  <MDBDropdownToggle nav caret>
+                    <MDBIcon icon="user" />{" "}
+                    <span className="d-none d-md-inline">User</span>
+                  </MDBDropdownToggle>
+                  <MDBDropdownMenu right style={{ minWidth: "200px" }}>
+                    <MDBDropdownItem
+                      href="javascript:void(0);"
+                      onClick={this.handleClickLogout}
+                    >
+                      Log Out
+                    </MDBDropdownItem>
+                  </MDBDropdownMenu>
+                </MDBDropdown>
+              </MDBNavbarNav>
+            </MDBNavbar>
+          );
+        }
+      }
+    )
+  )
+);

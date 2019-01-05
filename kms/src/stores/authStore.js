@@ -39,6 +39,12 @@ class AuthStore {
         })
       );
   }
+
+  logout() {
+    commonStore.setToken(undefined);
+    userStore.forgetUser();
+    return Promise.resolve();
+  }
 }
 
 decorate(AuthStore, {
@@ -47,7 +53,8 @@ decorate(AuthStore, {
   values: observable,
   setEmail: action,
   setPassword: action,
-  login: action
+  login: action,
+  logout: action
 });
 
 export default new AuthStore();

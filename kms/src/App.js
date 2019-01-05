@@ -1,12 +1,10 @@
 import React, { Component } from "react";
+import "./App.css";
+
 import { Switch, Route, withRouter } from "react-router-dom";
-
-import TopNavigation from "./components/topNavigation.js";
-import Routes from "../src/components/Routes";
-
-import Login from "./components/pages/Login";
 import { observer, inject } from "mobx-react";
 
+import Login from "./components/pages/Login";
 import PrivateRoute from "./components/PrivateRoute";
 import Home from "./components/Home";
 
