@@ -7,8 +7,7 @@ import {
   MDBDropdown,
   MDBDropdownToggle,
   MDBDropdownMenu,
-  MDBDropdownItem,
-  MDBBadge
+  MDBDropdownItem
 } from "mdbreact";
 
 import { withRouter } from "react-router-dom";
@@ -41,24 +40,6 @@ export default inject("userStore", "authStore")(
                 <strong>KMS</strong>
               </MDBNavbarBrand>
               <MDBNavbarNav expand="sm" right style={{ flexDirection: "row" }}>
-                <MDBDropdown>
-                  <MDBDropdownToggle nav caret>
-                    <MDBBadge color="red" className="mr-2">
-                      1
-                    </MDBBadge>
-                    <MDBIcon icon="bell" />{" "}
-                    <span className="d-none d-md-inline">Notifications</span>
-                  </MDBDropdownToggle>
-                  <MDBDropdownMenu right style={{ minWidth: "400px" }}>
-                    <MDBDropdownItem href="#!">
-                      <MDBIcon icon="user-secret" className="mr-2" />
-                      token create
-                      <span className="float-right">
-                        <MDBIcon icon="clock-o" /> 13 min
-                      </span>
-                    </MDBDropdownItem>
-                  </MDBDropdownMenu>
-                </MDBDropdown>
                 <MDBDropdown>
                   <MDBDropdownToggle nav caret>
                     <MDBIcon icon="user" />{" "}
