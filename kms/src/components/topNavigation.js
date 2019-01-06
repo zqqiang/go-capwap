@@ -1,58 +1,69 @@
 import React from "react";
-import {
-  MDBNavbar,
-  MDBNavbarBrand,
-  MDBNavbarNav,
-  MDBIcon,
-  MDBDropdown,
-  MDBDropdownToggle,
-  MDBDropdownMenu,
-  MDBDropdownItem
-} from "mdbreact";
-
 import { withRouter } from "react-router-dom";
-import { observer, inject } from "mobx-react";
+import { inject, observer } from "mobx-react";
 
-export default inject("userStore", "authStore")(
+export default inject("authStore")(
   withRouter(
     observer(
       class TopNavigation extends React.Component {
+        constructor(props) {
+          super(props);
+          this.state = { windowWidth: 0 };
+        }
+
         handleClickLogout = () => {
           this.props.authStore
             .logout()
             .then(() => this.props.history.replace("/"));
         };
+
         render() {
-          const navStyle = {
-            paddingLeft: "16px",
-            transition: "padding-left .3s"
-          };
           return (
-            <MDBNavbar
-              className="flexible-MDBNavbar"
-              light
-              expand="md"
-              scrolling
-              fixed="top"
-              style={{ zIndex: 3 }}
+            <nav
+              className="navbar"
+              role="navigation"
+              aria-label="main navigation"
             >
-              <MDBNavbarBrand href="/" style={navStyle}>
-                <strong>KMS</strong>
-              </MDBNavbarBrand>
-              <MDBNavbarNav expand="sm" right style={{ flexDirection: "row" }}>
-                <MDBDropdown>
-                  <MDBDropdownToggle nav caret>
-                    <MDBIcon icon="user" />{" "}
-                    <span className="d-none d-md-inline">User</span>
-                  </MDBDropdownToggle>
-                  <MDBDropdownMenu right style={{ minWidth: "200px" }}>
-                    <MDBDropdownItem onClick={this.handleClickLogout}>
-                      Log Out
-                    </MDBDropdownItem>
-                  </MDBDropdownMenu>
-                </MDBDropdown>
-              </MDBNavbarNav>
-            </MDBNavbar>
+              <div className="navbar-brand">
+                <a className="navbar-item" href="/">
+                  <span className="icon">
+                    <i className="fas fa-home" />
+                  </span>
+                </a>
+                <a
+                  role="button"
+                  className="navbar-burger burger"
+                  aria-label="menu"
+                  aria-expanded="false"
+                  data-target="navbar-kms"
+                  href="/"
+                >
+                  <span aria-hidden="true" />
+                  <span aria-hidden="true" />
+                  <span aria-hidden="true" />
+                </a>
+              </div>
+              <div id="navbar-kms" className="navbar-menu">
+                <div className="navbar-start">
+                  <a className="navbar-item" href="/Home">
+                    Home
+                  </a>
+                </div>
+                <div className="navbar-end">
+                  <div className="navbar-item has-dropdown is-hoverable">
+                    <a className="navbar-link">User</a>
+                    <div className="navbar-dropdown">
+                      <a
+                        className="navbar-item"
+                        onClick={this.handleClickLogout}
+                      >
+                        Logout
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </nav>
           );
         }
       }
