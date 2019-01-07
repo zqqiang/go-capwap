@@ -15,9 +15,14 @@ import authStore from "./stores/authStore";
 
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { fab } from "@fortawesome/free-brands-svg-icons";
-import { faUser, faKey, faHeart } from "@fortawesome/free-solid-svg-icons";
+import {
+  faUser,
+  faKey,
+  faHeart,
+  faSignOutAlt
+} from "@fortawesome/free-solid-svg-icons";
 
-library.add(fab, faUser, faKey, faHeart);
+library.add(fab, faUser, faKey, faHeart, faSignOutAlt);
 
 const stores = {
   commonStore,
