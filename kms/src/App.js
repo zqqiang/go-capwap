@@ -5,7 +5,7 @@ import { observer, inject } from "mobx-react";
 
 import Login from "./components/pages/Login";
 import PrivateRoute from "./components/PrivateRoute";
-import Home from "./components/Home";
+import Home from "./components/home/Home";
 
 export default inject("commonStore", "userStore")(
   withRouter(
