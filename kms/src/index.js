@@ -2,9 +2,8 @@ import React from "react";
 import ReactDOM from "react-dom";
 import { Provider } from "mobx-react";
 
-import "./index.css";
-import "font-awesome/css/font-awesome.min.css";
-import "bootstrap-css-only/css/bootstrap.min.css";
+import "bootstrap/dist/css/bootstrap.css";
+import "./assets/scss/main.scss";
 
 import App from "./App";
 import * as serviceWorker from "./serviceWorker";
@@ -13,6 +12,12 @@ import { BrowserRouter as Router } from "react-router-dom";
 import commonStore from "./stores/commonStore";
 import userStore from "./stores/userStore";
 import authStore from "./stores/authStore";
+
+import { library } from "@fortawesome/fontawesome-svg-core";
+import { fab } from "@fortawesome/free-brands-svg-icons";
+import { faUser, faKey, faHeart } from "@fortawesome/free-solid-svg-icons";
+
+library.add(fab, faUser, faKey, faHeart);
 
 const stores = {
   commonStore,

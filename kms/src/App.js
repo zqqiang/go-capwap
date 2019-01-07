@@ -1,5 +1,4 @@
 import React, { Component } from "react";
-import "./App.css";
 
 import { Switch, Route, withRouter } from "react-router-dom";
 import { observer, inject } from "mobx-react";
