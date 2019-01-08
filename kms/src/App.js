@@ -27,7 +27,7 @@ export default inject("commonStore", "userStore")(
           if (this.props.commonStore.appLoaded) {
             return (
               <Switch>
-                <Route path="/pages/login" exact component={Login} />
+                <Route path="/Login" exact component={Login} />
                 <PrivateRoute path="/" component={Home} />
               </Switch>
             );

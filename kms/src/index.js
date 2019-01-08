@@ -12,6 +12,7 @@ import { BrowserRouter as Router } from "react-router-dom";
 import commonStore from "./stores/commonStore";
 import userStore from "./stores/userStore";
 import authStore from "./stores/authStore";
+import editorStore from "./stores/editorStore";
 
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { fab } from "@fortawesome/free-brands-svg-icons";
@@ -27,7 +28,8 @@ library.add(fab, faUser, faKey, faHeart, faSignOutAlt);
 const stores = {
   commonStore,
   userStore,
-  authStore
+  authStore,
+  editorStore
 };
 
 ReactDOM.render(

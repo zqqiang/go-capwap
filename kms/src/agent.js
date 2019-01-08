@@ -6,6 +6,7 @@ import commonStore from "./stores/commonStore";
 const superagent = superagentPromise(_superagent, global.Promise);
 
 const API_ROOT = "https://conduit.productionready.io/api";
+// const API_ROOT = "http://localhost:3004";
 
 const handleErrors = err => {
   if (err && err.response && err.response.status === 401) {
@@ -58,6 +59,11 @@ const Auth = {
   save: user => requests.put("/user", { user })
 };
 
+const Deks = {
+  create: dek => requests.post("/deks", { dek })
+};
+
 export default {
-  Auth
+  Auth,
+  Deks
 };

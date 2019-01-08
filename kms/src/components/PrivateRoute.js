@@ -10,7 +10,7 @@ export default inject("userStore", "commonStore")(
         if (userStore.currentUser) {
           return <Route {...restProps} />;
         } else {
-          return <Redirect to="/pages/login" />;
+          return <Redirect to="/Login" />;
         }
       }
     }
